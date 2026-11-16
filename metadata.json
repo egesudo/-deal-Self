@@ -1,0 +1,6 @@
+{
+  "name": "Ideal Self",
+  "description": "Discover your ideal personality and build an ongoing voice and text relationship with a personalized 2D pixel-art AI companion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

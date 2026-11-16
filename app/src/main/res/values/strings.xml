@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Ideal Self</string>
+    <string name="home_tab_label">Home</string>
+    <string name="character_tab_label">Character</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="voice_session_cta">Voice Session</string>
+    <string name="text_chat_cta">Text Chat</string>
+    <string name="recent_conversations_header">Recent Conversations</string>
+    <string name="memory_bank_title">Long-Term Memory Bank</string>
+    <string name="discovery_quiz_title">Guided Ideal-Self Discovery Quiz</string>
+    <string name="permission_rationale_microphone">Microphone access is used exclusively during active live voice calls with your Ideal Self companion so you can speak naturally and interrupt at any time.</string>
+    <string name="permission_rationale_bluetooth">Bluetooth audio access allows hands-free voice sessions to route seamlessly to your wireless headphones or earbuds.</string>
+    <string name="privacy_policy_summary">Your Ideal Self profile, conversations, and selective memories are isolated under your Google account via zero-trust Firestore rules. You can inspect, edit, or permanently delete all cloud data at any time.</string>
+    <string name="app_version_display">Ideal Self v1.0.0 (Build 1) • Native Android &amp; iOS Architecture</string>
+</resources>

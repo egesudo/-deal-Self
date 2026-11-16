@@ -1,0 +1,251 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isBoundedStringList(listVal, maxItems) {
+      return listVal is list &&
+             listVal.size() <= maxItems &&
+             (listVal.size() == 0 || (listVal[0] is string && listVal[0].size() <= 100));
+    }
+
+    function isValidStr(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidTraitScore(val) {
+      return val is int && val >= 0 && val <= 100;
+    }
+
+    // Modular Section Helpers for UserCompanionDocument to keep CEL AST depth shallow
+    function isValidAccountAndIdealSelf(data, userId) {
+      return (data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+              isValidStr(data.displayName, 1, 100) &&
+              isValidStr(data.email, 0, 150) &&
+              data.onboardingCompleted is bool) &&
+             (isValidStr(data.coreAspiration, 1, 500) &&
+              isBoundedStringList(data.lifePillars, 10) &&
+              isValidStr(data.growthGoals, 0, 500) &&
+              isValidStr(data.emotionalGrounding, 0, 300) &&
+              isValidStr(data.reflectionStyle, 1, 100) &&
+              data.quizCompleted is bool);
+    }
+
+    function isValidIdentityAndTraits(data) {
+      return (isValidStr(data.companionName, 1, 60) &&
+              isValidStr(data.archetypeTitle, 1, 100) &&
+              isValidStr(data.backstorySummary, 0, 600) &&
+              isValidStr(data.greetingStyle, 0, 300) &&
+              isValidStr(data.signatureCatchphrase, 0, 200)) &&
+             (isValidTraitScore(data.warmth) &&
+              isValidTraitScore(data.directness) &&
+              isValidTraitScore(data.optimism) &&
+              isValidTraitScore(data.playfulness) &&
+              isValidTraitScore(data.analyticalDepth) &&
+              isBoundedStringList(data.traitKeywords, 10));
+    }
+
+    function isValidAppearanceAndClothing(data) {
+      return (isValidStr(data.skinToneId, 1, 40) &&
+              isValidStr(data.hairStyleId, 1, 40) &&
+              isValidStr(data.hairColorId, 1, 40) &&
+              isValidStr(data.eyeStyleId, 1, 40) &&
+              isValidStr(data.eyeColorId, 1, 40) &&
+              isValidStr(data.expressionDefault, 1, 40) &&
+              isValidStr(data.backdropThemeId, 1, 40)) &&
+             (isValidStr(data.outfitId, 1, 40) &&
+              isValidStr(data.primaryColorHex, 4, 16) &&
+              isValidStr(data.accentColorHex, 4, 16) &&
+              isValidStr(data.accessoryId, 1, 40) &&
+              isValidStr(data.auraEffectId, 1, 40));
+    }
+
+    function isValidVoicePrivacyAndTimestamps(data) {
+      return (data.voicePitchMilli is int && data.voicePitchMilli >= 500 && data.voicePitchMilli <= 2000 &&
+              data.voiceRateMilli is int && data.voiceRateMilli >= 500 && data.voiceRateMilli <= 2000 &&
+              data.handsFreeAutoListen is bool &&
+              data.preferredAudioRoute is string && data.preferredAudioRoute in ['SPEAKER', 'EARPIECE', 'BLUETOOTH']) &&
+             (data.autoExtractMemories is bool &&
+              data.saveConversationHistory is bool &&
+              data.contextWindowMemoryLimit is int && data.contextWindowMemoryLimit >= 1 && data.contextWindowMemoryLimit <= 50 &&
+              data.createdAt is timestamp && data.createdAt <= request.time &&
+              data.updatedAt is timestamp && data.updatedAt <= request.time);
+    }
+
+    // Validation Helper 1: UserCompanionDocument (/users/{userId})
+    function isValidUserCompanionDocument(data, userId) {
+      return (isValidAccountAndIdealSelf(data, userId) && isValidIdentityAndTraits(data)) &&
+             (isValidAppearanceAndClothing(data) && isValidVoicePrivacyAndTimestamps(data));
+    }
+
+    function hasValidUserCompanionKeys(data) {
+      let allowedKeys = [
+        'userId', 'displayName', 'email', 'onboardingCompleted',
+        'coreAspiration', 'lifePillars', 'growthGoals', 'emotionalGrounding', 'reflectionStyle', 'quizCompleted',
+        'companionName', 'archetypeTitle', 'backstorySummary', 'greetingStyle', 'signatureCatchphrase',
+        'warmth', 'directness', 'optimism', 'playfulness', 'analyticalDepth', 'traitKeywords',
+        'skinToneId', 'hairStyleId', 'hairColorId', 'eyeStyleId', 'eyeColorId', 'expressionDefault', 'backdropThemeId',
+        'outfitId', 'primaryColorHex', 'accentColorHex', 'accessoryId', 'auraEffectId',
+        'voicePitchMilli', 'voiceRateMilli', 'handsFreeAutoListen', 'preferredAudioRoute',
+        'autoExtractMemories', 'saveConversationHistory', 'contextWindowMemoryLimit',
+        'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(allowedKeys) && data.keys().hasOnly(allowedKeys);
+    }
+
+    // Validation Helper 2: Conversation (/users/{userId}/conversations/{conversationId})
+    function isValidConversation(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             isValidStr(data.title, 1, 120) &&
+             data.mode is string && data.mode in ['VOICE', 'TEXT'] &&
+             isValidStr(data.lastMessagePreview, 0, 500) &&
+             data.messageCount is int && data.messageCount >= 0 && data.messageCount <= 10000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Validation Helper 3: Message (/users/{userId}/conversations/{conversationId}/messages/{messageId})
+    function isValidMessage(data, userId, conversationId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.conversationId is string && data.conversationId == conversationId &&
+             data.sender is string && data.sender in ['USER', 'COMPANION'] &&
+             isValidStr(data.content, 1, 8000) &&
+             isValidStr(data.emotionTag, 1, 40) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // Validation Helper 4: LongTermMemory (/users/{userId}/memories/{memoryId})
+    function isValidMemory(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.category is string && data.category in ['GOAL', 'VALUE', 'PREFERENCE', 'MILESTONE', 'INSIGHT'] &&
+             isValidStr(data.summary, 1, 600) &&
+             data.importance is int && data.importance >= 1 && data.importance <= 5 &&
+             isValidStr(data.sourceConversationId, 0, 128) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Collection 1: /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       hasValidUserCompanionKeys(incoming()) &&
+                       isValidUserCompanionDocument(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserCompanionDocument(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'email', 'onboardingCompleted',
+                         'coreAspiration', 'lifePillars', 'growthGoals', 'emotionalGrounding', 'reflectionStyle', 'quizCompleted',
+                         'companionName', 'archetypeTitle', 'backstorySummary', 'greetingStyle', 'signatureCatchphrase',
+                         'warmth', 'directness', 'optimism', 'playfulness', 'analyticalDepth', 'traitKeywords',
+                         'skinToneId', 'hairStyleId', 'hairColorId', 'eyeStyleId', 'eyeColorId', 'expressionDefault', 'backdropThemeId',
+                         'outfitId', 'primaryColorHex', 'accentColorHex', 'accessoryId', 'auraEffectId',
+                         'voicePitchMilli', 'voiceRateMilli', 'handsFreeAutoListen', 'preferredAudioRoute',
+                         'autoExtractMemories', 'saveConversationHistory', 'contextWindowMemoryLimit',
+                         'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection 2: /users/{userId}/conversations/{conversationId}
+      match /conversations/{conversationId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(conversationId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(conversationId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'mode', 'lastMessagePreview', 'messageCount', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'mode', 'lastMessagePreview', 'messageCount', 'createdAt', 'updatedAt']) &&
+                         isValidConversation(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(conversationId) &&
+                         isValidConversation(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'mode', 'lastMessagePreview', 'messageCount', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(conversationId);
+
+        // Subcollection 3: /users/{userId}/conversations/{conversationId}/messages/{messageId}
+        match /messages/{messageId} {
+          allow get: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+          allow list: if isOwner(userId);
+
+          allow create: if isOwner(userId) &&
+                           isValidId(userId) &&
+                           isValidId(conversationId) &&
+                           isValidId(messageId) &&
+                           incoming().keys().hasAll(['userId', 'conversationId', 'sender', 'content', 'emotionTag', 'createdAt']) &&
+                           incoming().keys().hasOnly(['userId', 'conversationId', 'sender', 'content', 'emotionTag', 'createdAt']) &&
+                           isValidMessage(incoming(), userId, conversationId);
+
+          allow update: if false;
+          allow delete: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+        }
+      }
+
+      // Subcollection 4: /users/{userId}/memories/{memoryId}
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(memoryId) &&
+                         incoming().keys().hasAll(['userId', 'category', 'summary', 'importance', 'sourceConversationId', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'category', 'summary', 'importance', 'sourceConversationId', 'createdAt', 'updatedAt']) &&
+                         isValidMemory(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(memoryId) &&
+                         isValidMemory(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'category', 'summary', 'importance', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+      }
+    }
+  }
+}

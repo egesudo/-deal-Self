@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="warm_cream_beige">#FFF2EDE2</color>
+    <color name="muted_sage_grey">#FF839083</color>
+    <color name="deep_burgundy">#FF5D212B</color>
+    <color name="purple_200">#FFDCE2DB</color>
+    <color name="purple_500">#FF5D212B</color>
+    <color name="purple_700">#FF471720</color>
+    <color name="teal_200">#FF839083</color>
+    <color name="teal_700">#FF4F5D50</color>
+    <color name="black">#FF231F1E</color>
+    <color name="white">#FFF8F5EE</color>
+</resources>

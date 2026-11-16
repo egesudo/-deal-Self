@@ -1,0 +1,230 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Authenticated user account metadata and onboarding status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "displayName": { "type": "string", "description": "User display name." },
+        "email": { "type": "string", "description": "User email address." },
+        "onboardingCompleted": { "type": "boolean", "description": "Whether initial ideal-self setup is completed." }
+      },
+      "required": ["userId", "displayName", "email", "onboardingCompleted"]
+    },
+    "IdealSelfProfile": {
+      "title": "IdealSelfProfile",
+      "description": "Structured representation of the user's ideal self and growth aspirations.",
+      "type": "object",
+      "properties": {
+        "coreAspiration": { "type": "string", "description": "Primary statement of who the user aspires to become." },
+        "lifePillars": { "type": "array", "description": "Bounded list of core life focus areas (max 10)." },
+        "growthGoals": { "type": "string", "description": "Concrete personal growth habits and milestones." },
+        "emotionalGrounding": { "type": "string", "description": "Desired emotional posture during challenges." },
+        "reflectionStyle": { "type": "string", "description": "Preferred style of self-reflection and dialogue." },
+        "quizCompleted": { "type": "boolean", "description": "Whether the guided discovery quiz was completed." }
+      },
+      "required": ["coreAspiration", "lifePillars", "growthGoals", "emotionalGrounding", "reflectionStyle", "quizCompleted"]
+    },
+    "CharacterIdentity": {
+      "title": "CharacterIdentity",
+      "description": "Identity, archetype, and narrative persona of the 2D pixel-art companion.",
+      "type": "object",
+      "properties": {
+        "companionName": { "type": "string", "description": "Name of the pixel-art AI companion." },
+        "archetypeTitle": { "type": "string", "description": "Ideal-self archetype title (e.g., The Calm Architect)." },
+        "backstorySummary": { "type": "string", "description": "Short narrative origin and purpose of the companion." },
+        "greetingStyle": { "type": "string", "description": "Characteristic way the companion greets the user." },
+        "signatureCatchphrase": { "type": "string", "description": "Memorable motivating phrase used by the companion." }
+      },
+      "required": ["companionName", "archetypeTitle", "backstorySummary", "greetingStyle", "signatureCatchphrase"]
+    },
+    "PersonalityTraits": {
+      "title": "PersonalityTraits",
+      "description": "Quantified personality dimensions (0-100) and trait tags governing AI orchestration.",
+      "type": "object",
+      "properties": {
+        "warmth": { "type": "integer", "description": "Empathy and affectionate warmth (0-100)." },
+        "directness": { "type": "integer", "description": "Clarity and honest challenge level (0-100)." },
+        "optimism": { "type": "integer", "description": "Encouraging and hopeful outlook (0-100)." },
+        "playfulness": { "type": "integer", "description": "Lighthearted wit and pixel-art charm (0-100)." },
+        "analyticalDepth": { "type": "integer", "description": "Structured philosophical and strategic depth (0-100)." },
+        "traitKeywords": { "type": "array", "description": "Bounded list of personality keywords (max 10)." }
+      },
+      "required": ["warmth", "directness", "optimism", "playfulness", "analyticalDepth", "traitKeywords"]
+    },
+    "CharacterAppearance": {
+      "title": "CharacterAppearance",
+      "description": "Base physical 2D pixel-art layers for the companion character.",
+      "type": "object",
+      "properties": {
+        "skinToneId": { "type": "string", "description": "Selected pixel palette skin tone identifier." },
+        "hairStyleId": { "type": "string", "description": "Selected pixel hairstyle layer identifier." },
+        "hairColorId": { "type": "string", "description": "Selected pixel hair color identifier." },
+        "eyeStyleId": { "type": "string", "description": "Selected pixel eye shape identifier." },
+        "eyeColorId": { "type": "string", "description": "Selected pixel eye iris color identifier." },
+        "expressionDefault": { "type": "string", "description": "Default idle facial expression identifier." },
+        "backdropThemeId": { "type": "string", "description": "Studio environment backdrop identifier." }
+      },
+      "required": ["skinToneId", "hairStyleId", "hairColorId", "eyeStyleId", "eyeColorId", "expressionDefault", "backdropThemeId"]
+    },
+    "ClothingAndAccessories": {
+      "title": "ClothingAndAccessories",
+      "description": "Customizable pixel-art outfit, color palette, accessories, and ambient aura.",
+      "type": "object",
+      "properties": {
+        "outfitId": { "type": "string", "description": "Selected outfit template identifier." },
+        "primaryColorHex": { "type": "string", "description": "Primary outfit hex color." },
+        "accentColorHex": { "type": "string", "description": "Secondary trim hex color." },
+        "accessoryId": { "type": "string", "description": "Equipped pixel accessory identifier." },
+        "auraEffectId": { "type": "string", "description": "Ambient pixel particle aura identifier." }
+      },
+      "required": ["outfitId", "primaryColorHex", "accentColorHex", "accessoryId", "auraEffectId"]
+    },
+    "VoicePreferences": {
+      "title": "VoicePreferences",
+      "description": "Native mobile audio session and voice synthesis preferences.",
+      "type": "object",
+      "properties": {
+        "voicePitchMilli": { "type": "integer", "description": "Voice pitch multiplier in thousandths (500-2000)." },
+        "voiceRateMilli": { "type": "integer", "description": "Speech rate multiplier in thousandths (500-2000)." },
+        "handsFreeAutoListen": { "type": "boolean", "description": "Whether voice mode automatically resumes listening after companion speaks." },
+        "preferredAudioRoute": { "type": "string", "enum": ["SPEAKER", "EARPIECE", "BLUETOOTH"], "description": "Preferred audio output routing target." }
+      },
+      "required": ["voicePitchMilli", "voiceRateMilli", "handsFreeAutoListen", "preferredAudioRoute"]
+    },
+    "UserPrivacySettings": {
+      "title": "UserPrivacySettings",
+      "description": "User privacy controls for long-term memory extraction and history retention.",
+      "type": "object",
+      "properties": {
+        "autoExtractMemories": { "type": "boolean", "description": "Whether the companion automatically extracts long-term memories from chats." },
+        "saveConversationHistory": { "type": "boolean", "description": "Whether conversation messages are persisted to Firestore." },
+        "contextWindowMemoryLimit": { "type": "integer", "description": "Maximum number of memories injected into AI context (1-50)." }
+      },
+      "required": ["autoExtractMemories", "saveConversationHistory", "contextWindowMemoryLimit"]
+    },
+    "UserCompanionDocument": {
+      "title": "UserCompanionDocument",
+      "description": "Root user document combining UserAccount, IdealSelfProfile, CharacterIdentity, PersonalityTraits, CharacterAppearance, ClothingAndAccessories, VoicePreferences, and UserPrivacySettings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "onboardingCompleted": { "type": "boolean" },
+        "coreAspiration": { "type": "string" },
+        "lifePillars": { "type": "array" },
+        "growthGoals": { "type": "string" },
+        "emotionalGrounding": { "type": "string" },
+        "reflectionStyle": { "type": "string" },
+        "quizCompleted": { "type": "boolean" },
+        "companionName": { "type": "string" },
+        "archetypeTitle": { "type": "string" },
+        "backstorySummary": { "type": "string" },
+        "greetingStyle": { "type": "string" },
+        "signatureCatchphrase": { "type": "string" },
+        "warmth": { "type": "integer" },
+        "directness": { "type": "integer" },
+        "optimism": { "type": "integer" },
+        "playfulness": { "type": "integer" },
+        "analyticalDepth": { "type": "integer" },
+        "traitKeywords": { "type": "array" },
+        "skinToneId": { "type": "string" },
+        "hairStyleId": { "type": "string" },
+        "hairColorId": { "type": "string" },
+        "eyeStyleId": { "type": "string" },
+        "eyeColorId": { "type": "string" },
+        "expressionDefault": { "type": "string" },
+        "backdropThemeId": { "type": "string" },
+        "outfitId": { "type": "string" },
+        "primaryColorHex": { "type": "string" },
+        "accentColorHex": { "type": "string" },
+        "accessoryId": { "type": "string" },
+        "auraEffectId": { "type": "string" },
+        "voicePitchMilli": { "type": "integer" },
+        "voiceRateMilli": { "type": "integer" },
+        "handsFreeAutoListen": { "type": "boolean" },
+        "preferredAudioRoute": { "type": "string", "enum": ["SPEAKER", "EARPIECE", "BLUETOOTH"] },
+        "autoExtractMemories": { "type": "boolean" },
+        "saveConversationHistory": { "type": "boolean" },
+        "contextWindowMemoryLimit": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": [
+        "userId", "displayName", "email", "onboardingCompleted",
+        "coreAspiration", "lifePillars", "growthGoals", "emotionalGrounding", "reflectionStyle", "quizCompleted",
+        "companionName", "archetypeTitle", "backstorySummary", "greetingStyle", "signatureCatchphrase",
+        "warmth", "directness", "optimism", "playfulness", "analyticalDepth", "traitKeywords",
+        "skinToneId", "hairStyleId", "hairColorId", "eyeStyleId", "eyeColorId", "expressionDefault", "backdropThemeId",
+        "outfitId", "primaryColorHex", "accentColorHex", "accessoryId", "auraEffectId",
+        "voicePitchMilli", "voiceRateMilli", "handsFreeAutoListen", "preferredAudioRoute",
+        "autoExtractMemories", "saveConversationHistory", "contextWindowMemoryLimit",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Voice or text conversation thread with the ideal-self companion.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "title": { "type": "string", "description": "Conversation topic summary." },
+        "mode": { "type": "string", "enum": ["VOICE", "TEXT"], "description": "Primary interaction modality." },
+        "lastMessagePreview": { "type": "string", "description": "Snippet of the latest message." },
+        "messageCount": { "type": "integer", "description": "Total messages in the conversation." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "title", "mode", "lastMessagePreview", "messageCount", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual message turn inside a conversation.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "conversationId": { "type": "string", "description": "Parent conversation document ID." },
+        "sender": { "type": "string", "enum": ["USER", "COMPANION"], "description": "Author of the message." },
+        "content": { "type": "string", "description": "Message text or voice transcript." },
+        "emotionTag": { "type": "string", "description": "Companion emotion state tag for this message." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "conversationId", "sender", "content", "emotionTag", "createdAt"]
+    },
+    "LongTermMemory": {
+      "title": "LongTermMemory",
+      "description": "Distilled long-term memory about the user's aspirations, values, milestones, or preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "category": { "type": "string", "enum": ["GOAL", "VALUE", "PREFERENCE", "MILESTONE", "INSIGHT"], "description": "Memory classification." },
+        "summary": { "type": "string", "description": "Concise factual or reflective memory statement." },
+        "importance": { "type": "integer", "description": "Priority weight from 1 to 5." },
+        "sourceConversationId": { "type": "string", "description": "Conversation ID where memory was captured." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "category", "summary", "importance", "sourceConversationId", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserCompanionDocument" },
+      "description": "Per-user isolated document storing account, ideal-self profile, character identity, traits, pixel appearance, clothing/accessories, voice preferences, and privacy settings."
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Per-user isolated subcollection of voice and text conversations."
+    },
+    "/users/{userId}/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Per-user isolated subcollection of messages within a specific conversation."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/LongTermMemory" },
+      "description": "Per-user isolated subcollection of long-term companion memories."
+    }
+  }
+}
