@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Ideal Self • 16-Bit AI Yol Arkadaşı</title>
+  <meta name="description" content="Kişiselleştirilebilir 16-bit piksel AI yol arkadaşınız ile sesli ve yazılı sohbet edin." />
+  <style>
+    :root {
+      --bg-cream: #F5F0E6;
+      --surface-card: #FAF6EE;
+      --surface-sage: #C8D0C8;
+      --surface-sage-soft: rgba(200, 208, 200, 0.45);
+      --accent-burgundy: #7A1C24;
+      --accent-burgundy-soft: rgba(122, 28, 36, 0.12);
+      --text-primary: #231F1E;
+      --text-secondary: #5B5550;
+      --border-soft: rgba(91, 85, 80, 0.22);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-pill: 999px;
+      --shadow-card: 0 8px 28px rgba(35, 31, 30, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 600px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 16px 88px;
+      gap: 12px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 2px;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-btn {
+      border: 1px solid var(--border-soft);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      padding: 8px 13px;
+      border-radius: var(--radius-pill);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease;
+    }
+
+    .pill-btn:active { transform: scale(0.95); }
+
+    .pill-btn.primary {
+      background: var(--accent-burgundy);
+      color: #FFF9F5;
+      border-color: var(--accent-burgundy);
+    }
+
+    .pill-btn.sage {
+      background: var(--surface-sage-soft);
+      color: var(--accent-burgundy);
+      border-color: rgba(122, 28, 36, 0.3);
+    }
+
+    .stage-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stage-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sprite-box {
+      width: 122px;
+      height: 122px;
+      border-radius: 18px;
+      background: var(--surface-sage-soft);
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    canvas.pixel-canvas {
+      image-rendering: pixelated;
+      width: 108px;
+      height: 108px;
+    }
+
+    .stage-controls {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .stage-btn-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-suggest {
+      flex: 1;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--accent-burgundy);
+      color: #FFF9F5;
+      border: none;
+      font-weight: 700;
+      font-size: 0.84rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .btn-suggest:active { transform: scale(0.96); }
+
+    .btn-reset {
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 12px;
+      background: var(--surface-sage-soft);
+      border: 1px solid var(--border-soft);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .badge-row::-webkit-scrollbar { display: none; }
+
+    .mini-chip {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--surface-sage-soft);
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .mini-chip.active {
+      background: var(--accent-burgundy-soft);
+      color: var(--accent-burgundy);
+      border-color: var(--accent-burgundy);
+    }
+
+    .category-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 0;
+      scrollbar-width: none;
+    }
+    .category-bar::-webkit-scrollbar { display: none; }
+
+    .cat-tab {
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .cat-tab.active {
+      background: var(--accent-burgundy);
+      color: #FFF9F5;
+      border-color: var(--accent-burgundy);
+      transform: scale(1.04);
+    }
+
+    .panel-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: panelSpringIn 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes panelSpringIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .section-label {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .swatch-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 2px;
+      scrollbar-width: none;
+    }
+    .swatch-row::-webkit-scrollbar { display: none; }
+
+    .color-swatch {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid rgba(35,31,30,0.2);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .color-swatch.active {
+      border: 3px solid var(--accent-burgundy);
+      transform: scale(1.14);
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .visual-grid.two-col {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-item {
+      background: var(--surface-sage-soft);
+      border: 1.5px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .grid-item.active {
+      background: var(--accent-burgundy-soft);
+      border-color: var(--accent-burgundy);
+      transform: scale(1.03);
+    }
+
+    .grid-item-title {
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text-primary);
+    }
+
+    .grid-item.active .grid-item-title {
+      color: var(--accent-burgundy);
+      font-weight: 700;
+    }
+
+    .grid-item-sub {
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .voice-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 14px;
+      text-align: center;
+    }
+
+    .waveform-bars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 36px;
+    }
+
+    .wave-bar {
+      width: 5px;
+      height: 10px;
+      background: var(--accent-burgundy);
+      border-radius: 99px;
+      transition: height 0.15s ease;
+    }
+
+    .caption-box {
+      width: 100%;
+      background: var(--bg-cream);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .live-transcript {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--accent-burgundy);
+    }
+
+    .companion-reply {
+      font-size: 0.96rem;
+      line-height: 1.45;
+      color: var(--text-primary);
+    }
+
+    .partial-actions {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .mic-main-btn {
+      height: 58px;
+      min-width: 210px;
+      padding: 0 24px;
+      border-radius: 999px;
+      background: var(--accent-burgundy);
+      color: #FFF9F5;
+      border: none;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(122, 28, 36, 0.26);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .mic-main-btn:active { transform: scale(0.96); }
+
+    .chat-input-row {
+      display: flex;
+      width: 100%;
+      gap: 8px;
+    }
+
+    .text-input {
+      flex: 1;
+      height: 46px;
+      border-radius: 14px;
+      border: 1px solid var(--border-soft);
+      background: #FFFDF9;
+      padding: 0 14px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface-card);
+      border-top: 1px solid var(--border-soft);
+      display: flex;
+      justify-content: center;
+      padding: 8px 16px;
+      z-index: 20;
+    }
+
+    .bottom-nav-inner {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      justify-content: space-around;
+      gap: 8px;
+    }
+
+    .nav-item {
+      flex: 1;
+      padding: 10px 8px;
+      border-radius: 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-item.active {
+      background: var(--accent-burgundy-soft);
+      color: var(--accent-burgundy);
+      font-weight: 700;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div>
+        <h1 class="brand-title" id="headerTitle">Karakter Özelleştirme</h1>
+        <p class="brand-subtitle" id="headerSubtitle">Nova · Sakin Mimar</p>
+      </div>
+      <div class="header-actions">
+        <button class="pill-btn" id="langToggleBtn" onclick="toggleLanguage()">TR / EN</button>
+        <button class="pill-btn sage" id="personaBtn" onclick="switchPrimaryTab('discovery')">✨ Kişilik</button>
+      </div>
+    </header>
+
+    <section class="stage-card">
+      <div class="stage-row">
+        <div class="sprite-box">
+          <canvas id="mainSpriteCanvas" class="pixel-canvas" width="32" height="32"></canvas>
+        </div>
+        <div class="stage-controls">
+          <div class="stage-btn-row">
+            <button class="btn-suggest" onclick="suggestRandomStyle()" id="suggestBtn">✨ Stil Öner</button>
+            <button class="btn-reset" onclick="resetCharacterDefault()" id="resetBtn">↺ Sıfırla</button>
+          </div>
+          <div class="badge-row" id="statePillsRow"></div>
+          <div class="badge-row">
+            <span class="mini-chip active" id="activeVoiceBadge">🔊 Sıcak ve Dengeli</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main id="tabCharacter">
+      <div class="category-bar" id="categoryBar"></div>
+      <div id="categoryPanelContainer" style="margin-top: 10px;"></div>
+    </main>
+
+    <main id="tabVoice" class="hidden">
+      <section class="panel-card voice-stage">
+        <div class="badge-row">
+          <span class="mini-chip active" id="voiceStatusPill">BAĞLANDI • CANLI SESLİ SOHBET</span>
+        </div>
+
+        <div class="waveform-bars" id="waveformBars">
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+
+        <p id="voiceHintText" style="font-size: 0.85rem; color: var(--text-secondary);">
+          Konuşmak için mikrofona dokunun; konuşurken tekrar dokunarak hemen gönderebilirsiniz.
+        </p>
+
+        <div class="caption-box">
+          <div id="liveTranscriptText" class="live-transcript hidden"></div>
+          <div id="partialActionRow" class="partial-actions hidden">
+            <button class="pill-btn primary" onclick="commitSpokenTurn()" id="sendPartialBtn">➤ Hemen Gönder</button>
+            <button class="pill-btn" onclick="editPartialTranscript()" id="editPartialBtn">✎ Düzenle</button>
+            <button class="pill-btn" onclick="clearPartialTranscript()" id="retakePartialBtn">↺ Yeniden</button>
+          </div>
+          <div id="companionReplyText" class="companion-reply">
+            "Selam! Bugün gerçekten neye odaklanmak istiyoruz? Gel fazlalıkları bir kenara bırakıp konuşalım."
+          </div>
+        </div>
+
+        <button class="mic-main-btn" id="primaryMicBtn" onclick="handlePrimaryMicTap()">
+          🎙️ Konuş
+        </button>
+
+        <div class="chat-input-row">
+          <input
+            type="text"
+            id="chatTextInput"
+            class="text-input"
+            placeholder="Konuşun veya cümle yazın (TR / EN)..."
+            onkeydown="if(event.key==='Enter') sendTypedTurn()"
+          />
+          <button class="pill-btn primary" onclick="sendTypedTurn()">Gönder</button>
+        </div>
+      </section>
+    </main>
+
+    <main id="tabDiscovery" class="hidden">
+      <section class="panel-card" id="discoveryCard"></section>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="nav-item active" id="navCharacter" onclick="switchPrimaryTab('character')">
+        <span>🎨</span>
+        <span id="navCharacterLabel">Stüdyo</span>
+      </button>
+      <button class="nav-item" id="navVoice" onclick="switchPrimaryTab('voice')">
+        <span>🎙️</span>
+        <span id="navVoiceLabel">Sesli Sohbet</span>
+      </button>
+      <button class="nav-item" id="navDiscovery" onclick="switchPrimaryTab('discovery')">
+        <span>🧭</span>
+        <span id="navDiscoveryLabel">Keşif (5 Soru)</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    const STORAGE_KEY = "idealself_character_customization_v1";
+
+    const DEFAULT_STATE = {
+      lang: "tr",
+      companionName: "Nova",
+      archetypeTitle: "Sakin Mimar",
+      skinColor: "#F2C6A0",
+      presentation: "androgynous",
+      hairStyle: "messy_crop",
+      hairColor: "#2C222B",
+      eyewear: "none",
+      eyeColor: "#4A6B5D",
+      outfitColor: "#7A1C24",
+      outfitStyle: "scholar_vest",
+      expression: "calm",
+      voiceToneId: "warm_balanced",
+      activeCategory: "silhouette",
+      visualState: "IDLE",
+      discoveryStep: 0,
+      discoveryAnswers: ["", "", "", "", ""]
+    };
+
+    let state = loadState();
+    let isListening = false;
+    let isSpeaking = false;
+    let liveTranscriptBuffer = "";
+    let recognitionInstance = null;
+
+    const VOICE_TONES = [
+      { id: "warm_balanced", tr: "Sıcak ve Dengeli", en: "Warm & Balanced", subTr: "Samimi, doğal ve dingin", subEn: "Friendly, natural & grounded", pitch: 1.0, rate: 1.0, match: "androgynous" },
+      { id: "deep_resonant", tr: "Derin ve Karizmatik", en: "Deep & Resonant", subTr: "Tok, güven veren bariton ton", subEn: "Rich, reassuring low tone", pitch: 0.84, rate: 0.94, match: "masculine" },
+      { id: "bright_expressive", tr: "Canlı ve Neşeli", en: "Bright & Expressive", subTr: "Enerjik, berrak ve motive edici", subEn: "Clear, upbeat & encouraging", pitch: 1.16, rate: 1.06, match: "feminine" },
+      { id: "velvet_reflective", tr: "Kadife ve Bilge", en: "Velvet & Reflective", subTr: "Yumuşak, sakin ve düşündürücü", subEn: "Soft, unhurried & meditative", pitch: 0.91, rate: 0.89, match: "androgynous" },
+      { id: "crisp_focused", tr: "Net ve Odaklı", en: "Crisp & Focused", subTr: "Dinamik, pratik ve kararlı", subEn: "Sharp, articulate & action-ready", pitch: 1.05, rate: 1.12, match: "masculine" }
+    ];
+
+    const CATEGORIES = [
+      { id: "silhouette", tr: "Silüet", en: "Silhouette" },
+      { id: "hair", tr: "Saç", en: "Hair" },
+      { id: "eyewear", tr: "Gözlük", en: "Eyewear" },
+      { id: "outfit", tr: "Kıyafet", en: "Outfit" },
+      { id: "expressions", tr: "İfadeler", en: "Expressions" }
+    ];
+
+    const DISCOVERY_QUESTIONS = [
+      {
+        tr: "1/5 · İdeal benliğin hangi temel karakter özelliğini taşısın?",
+        en: "1/5 · What core trait should your Ideal Self embody?",
+        chipsTr: ["Sakin ve Özgüvenli", "Cesur ve Yaratıcı", "Derin ve Analitik", "Sıcak ve Esprili"],
+        chipsEn: ["Calm & Confident", "Bold & Creative", "Deep & Analytical", "Warm & Witty"]
+      },
+      {
+        tr: "2/5 · Hayatta senin için en vazgeçilmez değer hangisi?",
+        en: "2/5 · What personal value matters most to you?",
+        chipsTr: ["Zihinsel Berraklık", "Özgünlük ve Özgürlük", "Sürekli Gelişim", "Anlamlı Bağlar"],
+        chipsEn: ["Mindful Clarity", "Authenticity & Freedom", "Continuous Mastery", "Meaningful Connection"]
+      },
+      {
+        tr: "3/5 · Zorluklar veya stres karşısında nasıl tepki vermeni hatırlatsın?",
+        en: "3/5 · How should your companion ground you under pressure?",
+        chipsTr: ["Derin nefes alıp sadeleştirerek", "Mizahla ve rahatlatarak", "Doğrudan çözüm adımlarına odaklanarak"],
+        chipsEn: ["Pause and simplify", "Lighten with perspective", "Focus on direct next steps"]
+      },
+      {
+        tr: "4/5 · Yol arkadaşın seninle hangi iletişim tonunda konuşsun?",
+        en: "4/5 · How should your companion communicate with you?",
+        chipsTr: ["Samimi ve Sorgulayıcı", "Net ve Eylem Odaklı", "Şefkatli ve Destekleyici"],
+        chipsEn: ["Warm & Socratic", "Crisp & Action-Oriented", "Empathetic & Supportive"]
+      },
+      {
+        tr: "5/5 · Önümüzdeki dönemde gerçekleştirmek istediğin ana hedef ne?",
+        en: "5/5 · What is your primary growth goal right now?",
+        chipsTr: ["Ertelemeyi bırakıp üretmek", "Kendi projemi hayata geçirmek", "Dengeli ve huzurlu bir rutin kurmak"],
+        chipsEn: ["Overcome procrastination", "Launch my creative project", "Build a calm daily rhythm"]
+      }
+    ];
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          return { ...DEFAULT_STATE, ...JSON.parse(raw) };
+        }
+      } catch (_) {}
+      return { ...DEFAULT_STATE };
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (_) {}
+      renderAll();
+    }
+
+    function tr(trText, enText) {
+      return state.lang === "tr" ? trText : enText;
+    }
+
+    function toggleLanguage() {
+      state.lang = state.lang === "tr" ? "en" : "tr";
+      saveState();
+    }
+
+    function resetCharacterDefault() {
+      const currentLang = state.lang;
+      state = { ...DEFAULT_STATE, lang: currentLang };
+      saveState();
+    }
+
+    function suggestRandomStyle() {
+      const skins = ["#F8D9C0", "#F2C6A0", "#D99B72", "#A86B43", "#6E4228"];
+      const hairs = ["messy_crop", "starlight_bob", "long_wave", "spiky_punk"];
+      const hairColors = ["#2C222B", "#7A1C24", "#D49B3B", "#4A6B5D", "#6C5CE7"];
+      const outfits = ["#7A1C24", "#3B5249", "#2E4057", "#8C5E3C", "#4A3E5D"];
+      const glasses = ["none", "round_tortoise", "cyber_visor", "thin_gold"];
+      const expressions = ["calm", "joy", "focused", "sparkle"];
+      state.skinColor = skins[Math.floor(Math.random() * skins.length)];
+      state.hairStyle = hairs[Math.floor(Math.random() * hairs.length)];
+      state.hairColor = hairColors[Math.floor(Math.random() * hairColors.length)];
+      state.outfitColor = outfits[Math.floor(Math.random() * outfits.length)];
+      state.eyewear = glasses[Math.floor(Math.random() * glasses.length)];
+      state.expression = expressions[Math.floor(Math.random() * expressions.length)];
+      saveState();
+    }
+
+    function drawPixelCharacter(canvas, customState) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const s = customState || state;
+      ctx.clearRect(0, 0, 32, 32);
+
+      ctx.fillStyle = "rgba(122, 28, 36, 0.08)";
+      ctx.fillRect(4, 4, 24, 24);
+
+      ctx.fillStyle = s.hairColor || "#2C222B";
+      if (s.hairStyle === "long_wave" || s.hairStyle === "starlight_bob") {
+        ctx.fillRect(8, 7, 16, 14);
+      } else {
+        ctx.fillRect(9, 6, 14, 9);
+      }
+
+      ctx.fillStyle = s.skinColor || "#F2C6A0";
+      ctx.fillRect(10, 8, 12, 11);
+
+      ctx.fillStyle = s.hairColor || "#2C222B";
+      ctx.fillRect(9, 6, 14, 4);
+      if (s.hairStyle === "spiky_punk") {
+        ctx.fillRect(11, 4, 3, 2);
+        ctx.fillRect(16, 4, 3, 2);
+      }
+
+      ctx.fillStyle = s.eyeColor || "#4A6B5D";
+      ctx.fillRect(12, 12, 2, 2);
+      ctx.fillRect(18, 12, 2, 2);
+
+      if (s.eyewear === "round_tortoise" || s.eyewear === "thin_gold") {
+        ctx.fillStyle = s.eyewear === "thin_gold" ? "#D4AF37" : "#5C3A21";
+        ctx.fillRect(11, 11, 4, 4);
+        ctx.fillRect(17, 11, 4, 4);
+        ctx.fillRect(15, 12, 2, 1);
+        ctx.fillStyle = s.eyeColor || "#4A6B5D";
+        ctx.fillRect(12, 12, 2, 2);
+        ctx.fillRect(18, 12, 2, 2);
+      } else if (s.eyewear === "cyber_visor") {
+        ctx.fillStyle = "#38BDF8";
+        ctx.fillRect(10, 11, 12, 3);
+      }
+
+      ctx.fillStyle = "#7A1C24";
+      if (s.expression === "joy" || s.visualState === "SPEAKING") {
+        ctx.fillRect(14, 16, 4, 2);
+      } else {
+        ctx.fillRect(14, 16, 4, 1);
+      }
+
+      const bodyWidth = s.presentation === "masculine" ? 14 : (s.presentation === "feminine" ? 10 : 12);
+      const bodyX = Math.floor((32 - bodyWidth) / 2);
+      ctx.fillStyle = s.outfitColor || "#7A1C24";
+      ctx.fillRect(bodyX, 19, bodyWidth, 8);
+
+      ctx.fillStyle = "#F5F0E6";
+      ctx.fillRect(14, 19, 4, 3);
+
+      ctx.fillStyle = "#353B3C";
+      ctx.fillRect(11, 27, 4, 3);
+      ctx.fillRect(17, 27, 4, 3);
+      ctx.fillStyle = "#231F1E";
+      ctx.fillRect(11, 30, 4, 2);
+      ctx.fillRect(17, 30, 4, 2);
+    }
+
+    function matchPersonaVoice() {
+      let recommended = "warm_balanced";
+      if (state.expression === "joy" || state.expression === "sparkle") recommended = "bright_expressive";
+      else if (state.expression === "focused") recommended = "crisp_focused";
+      else if (state.presentation === "masculine") recommended = "deep_resonant";
+      else if (state.presentation === "feminine") recommended = "bright_expressive";
+      state.voiceToneId = recommended;
+      saveState();
+    }
+
+    function renderCategoryPanel() {
+      const container = document.getElementById("categoryPanelContainer");
+      const cat = state.activeCategory;
+
+      if (cat === "silhouette") {
+        container.innerHTML = `
+          <div class="panel-card">
+            <div class="chat-input-row">
+              <input type="text" class="text-input" id="companionNameInput" value="${state.companionName}" placeholder="${tr('Karakter Adı', 'Companion Name')}" />
+              <button class="pill-btn primary" onclick="state.companionName=document.getElementById('companionNameInput').value||'Nova';saveState();">${tr('Kaydet', 'Save')}</button>
+            </div>
+            <div class="section-label">${tr('Ten Tonu', 'Skin Tone')}</div>
+            <div class="swatch-row">
+              ${["#F8D9C0", "#F2C6A0", "#D99B72", "#A86B43", "#6E4228"].map(c =>
+                `<div class="color-swatch ${state.skinColor === c ? 'active' : ''}" style="background:${c}" onclick="state.skinColor='${c}';saveState();"></div>`
+              ).join("")}
+            </div>
+            <div class="section-label">${tr('Silüet Seçimi', 'Body Silhouette')}</div>
+            <div class="visual-grid">
+              ${[
+                { id: "androgynous", tr: "Dengeli", en: "Balanced" },
+                { id: "feminine", tr: "Zarif", en: "Graceful" },
+                { id: "masculine", tr: "Geniş Omuz", en: "Broad" }
+              ].map(opt => `
+                <div class="grid-item ${state.presentation === opt.id ? 'active' : ''}" onclick="state.presentation='${opt.id}';saveState();">
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                </div>
+              `).join("")}
+            </div>
+            <div class="section-label">
+              <span>🎙️ ${tr('Karakter Ses Tonu', 'Companion Voice Tone')}</span>
+              <button class="pill-btn sage" onclick="matchPersonaVoice()">✨ ${tr('Persona ile Eşleştir', 'Match Persona')}</button>
+            </div>
+            <div class="visual-grid two-col">
+              ${VOICE_TONES.map(t => `
+                <div class="grid-item ${state.voiceToneId === t.id ? 'active' : ''}" onclick="state.voiceToneId='${t.id}';saveState();previewVoiceTone('${t.id}');">
+                  <span class="grid-item-title">${tr(t.tr, t.en)}</span>
+                  <span class="grid-item-sub">${tr(t.subTr, t.subEn)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      } else if (cat === "hair") {
+        container.innerHTML = `
+          <div class="panel-card">
+            <div class="section-label">${tr('Saç Rengi', 'Hair Color')}</div>
+            <div class="swatch-row">
+              ${["#2C222B", "#7A1C24", "#D49B3B", "#4A6B5D", "#6C5CE7"].map(c =>
+                `<div class="color-swatch ${state.hairColor === c ? 'active' : ''}" style="background:${c}" onclick="state.hairColor='${c}';saveState();"></div>`
+              ).join("")}
+            </div>
+            <div class="section-label">${tr('Saç Modelleri', 'Hairstyles')}</div>
+            <div class="visual-grid two-col">
+              ${[
+                { id: "messy_crop", tr: "Doğal Kısa", en: "Textured Crop" },
+                { id: "starlight_bob", tr: "Yıldız Bob", en: "Starlight Bob" },
+                { id: "long_wave", tr: "Uzun Dalgalı", en: "Long Waves" },
+                { id: "spiky_punk", tr: "Dinamik Dik", en: "Spiky Crest" }
+              ].map(opt => `
+                <div class="grid-item ${state.hairStyle === opt.id ? 'active' : ''}" onclick="state.hairStyle='${opt.id}';saveState();">
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      } else if (cat === "eyewear") {
+        container.innerHTML = `
+          <div class="panel-card">
+            <div class="section-label">${tr('Göz Rengi', 'Eye Color')}</div>
+            <div class="swatch-row">
+              ${["#4A6B5D", "#5C3A21", "#38BDF8", "#7A1C24", "#2C222B"].map(c =>
+                `<div class="color-swatch ${state.eyeColor === c ? 'active' : ''}" style="background:${c}" onclick="state.eyeColor='${c}';saveState();"></div>`
+              ).join("")}
+            </div>
+            <div class="section-label">${tr('Gözlük ve Yüz Aksesuarları', 'Eyewear & Accents')}</div>
+            <div class="visual-grid two-col">
+              ${[
+                { id: "none", tr: "Gözlüksüz", en: "No Eyewear" },
+                { id: "round_tortoise", tr: "Kemik Çerçeve", en: "Tortoise Round" },
+                { id: "thin_gold", tr: "Altın Çerçeve", en: "Gold Wire" },
+                { id: "cyber_visor", tr: "Piksel Vizör", en: "Pixel Visor" }
+              ].map(opt => `
+                <div class="grid-item ${state.eyewear === opt.id ? 'active' : ''}" onclick="state.eyewear='${opt.id}';saveState();">
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      } else if (cat === "outfit") {
+        container.innerHTML = `
+          <div class="panel-card">
+            <div class="section-label">${tr('Kıyafet Renk Paleti', 'Outfit Palette')}</div>
+            <div class="swatch-row">
+              ${["#7A1C24", "#3B5249", "#2E4057", "#8C5E3C", "#4A3E5D"].map(c =>
+                `<div class="color-swatch ${state.outfitColor === c ? 'active' : ''}" style="background:${c}" onclick="state.outfitColor='${c}';saveState();"></div>`
+              ).join("")}
+            </div>
+            <div class="section-label">${tr('Kıyafet Kombinleri', 'Curated Outfits')}</div>
+            <div class="visual-grid two-col">
+              ${[
+                { id: "scholar_vest", color: "#7A1C24", tr: "Bordo Akademi", en: "Burgundy Scholar" },
+                { id: "sage_kimono", color: "#3B5249", tr: "Adaçayı Stüdyo", en: "Sage Studio" },
+                { id: "trench_havana", color: "#8C5E3C", tr: "Klasik Trençkot", en: "Havana Trench" },
+                { id: "cyber_jacket", color: "#2E4057", tr: "Gece Ceketi", en: "Midnight Jacket" }
+              ].map(opt => `
+                <div class="grid-item ${state.outfitStyle === opt.id ? 'active' : ''}" onclick="state.outfitStyle='${opt.id}';state.outfitColor='${opt.color}';saveState();">
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="panel-card">
+            <div class="section-label">${tr('Yüz İfadeleri', 'Expressions')}</div>
+            <div class="visual-grid two-col">
+              ${[
+                { id: "calm", tr: "Sakin ve Dingin", en: "Calm & Grounded" },
+                { id: "joy", tr: "Samimi Tebessüm", en: "Warm Smile" },
+                { id: "focused", tr: "Derin Odak", en: "Deep Focus" },
+                { id: "sparkle", tr: "İlham Verici", en: "Inspired Sparkle" }
+              ].map(opt => `
+                <div class="grid-item ${state.expression === opt.id ? 'active' : ''}" onclick="state.expression='${opt.id}';saveState();">
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderDiscoveryQuiz() {
+      const card = document.getElementById("discoveryCard");
+      const step = state.discoveryStep || 0;
+      const q = DISCOVERY_QUESTIONS[step];
+      const chips = state.lang === "tr" ? q.chipsTr : q.chipsEn;
+      const currentAns = state.discoveryAnswers[step] || "";
+
+      card.innerHTML = `
+        <div class="section-label">
+          <span>${tr(q.tr, q.en)}</span>
+          <span class="mini-chip active">${step + 1} / 5</span>
+        </div>
+        <div class="badge-row" style="flex-wrap: wrap;">
+          ${chips.map(c => `
+            <span class="mini-chip ${currentAns === c ? 'active' : ''}" onclick="selectDiscoveryChip('${c.replace(/'/g, "\\'")}')">${c}</span>
+          `).join("")}
+        </div>
+        <input
+          type="text"
+          class="text-input"
+          id="discoveryInput"
+          value="${currentAns}"
+          placeholder="${tr('Yanıtınızı seçin veya yazın...', 'Select a chip or type your answer...')}"
+          oninput="state.discoveryAnswers[${step}] = this.value"
+        />
+        <div style="display:flex; justify-content:space-between; gap:8px;">
+          <button class="pill-btn" ${step === 0 ? 'disabled' : ''} onclick="state.discoveryStep=Math.max(0, state.discoveryStep-1);saveState();">
+            ← ${tr('Geri', 'Back')}
+          </button>
+          ${step < 4
+            ? `<button class="pill-btn primary" onclick="state.discoveryStep=Math.min(4, state.discoveryStep+1);saveState();">${tr('İleri', 'Next')} →</button>`
+            : `<button class="pill-btn primary" onclick="completeDiscoveryQuiz()">✨ ${tr('İdeal Benliği Güncelle', 'Synthesize Ideal Self')}</button>`
+          }
+        </div>
+      `;
+    }
+
+    function selectDiscoveryChip(val) {
+      state.discoveryAnswers[state.discoveryStep] = val;
+      saveState();
+    }
+
+    function completeDiscoveryQuiz() {
+      const firstTrait = state.discoveryAnswers[0] || tr("Sakin Mimar", "Calm Architect");
+      state.archetypeTitle = firstTrait;
+      matchPersonaVoice();
+      switchPrimaryTab("character");
+    }
+
+    function switchPrimaryTab(tabName) {
+      document.getElementById("tabCharacter").classList.toggle("hidden", tabName !== "character");
+      document.getElementById("tabVoice").classList.toggle("hidden", tabName !== "voice");
+      document.getElementById("tabDiscovery").classList.toggle("hidden", tabName !== "discovery");
+
+      document.getElementById("navCharacter").classList.toggle("active", tabName === "character");
+      document.getElementById("navVoice").classList.toggle("active", tabName === "voice");
+      document.getElementById("navDiscovery").classList.toggle("active", tabName === "discovery");
+      renderAll();
+    }
+
+    function previewVoiceTone(toneId) {
+      const tone = VOICE_TONES.find(t => t.id === toneId) || VOICE_TONES[0];
+      speakReply(
+        state.lang === "tr"
+          ? `Merhaba, ben ${state.companionName}. ${tone.tr} ses tonuyla yanındayım.`
+          : `Hey, I am ${state.companionName}, speaking with a ${tone.en} voice tone.`
+      );
+    }
+
+    function speakReply(text) {
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      const tone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
+      utter.lang = state.lang === "tr" ? "tr-TR" : "en-US";
+      utter.pitch = tone.pitch;
+      utter.rate = tone.rate;
+      utter.onstart = () => {
+        isSpeaking = true;
+        state.visualState = "SPEAKING";
+        drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state);
+        updateVoiceControlsUI();
+      };
+      utter.onend = () => {
+        isSpeaking = false;
+        state.visualState = "IDLE";
+        drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state);
+        updateVoiceControlsUI();
+      };
+      window.speechSynthesis.speak(utter);
+    }
+
+    function handlePrimaryMicTap() {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        startBrowserSpeechRecognition();
+        return;
+      }
+      if (liveTranscriptBuffer.trim().length > 0) {
+        commitSpokenTurn();
+        return;
+      }
+      startBrowserSpeechRecognition();
+    }
+
+    function startBrowserSpeechRecognition() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        document.getElementById("chatTextInput").focus();
+        return;
+      }
+      try {
+        if (recognitionInstance) {
+          recognitionInstance.abort();
+        }
+        const rec = new SpeechRec();
+        recognitionInstance = rec;
+        rec.lang = state.lang === "tr" ? "tr-TR" : "en-US";
+        rec.interimResults = true;
+        rec.continuous = true;
+
+        rec.onstart = () => {
+          isListening = true;
+          updateVoiceControlsUI();
+        };
+
+        rec.onresult = (event) => {
+          let combined = "";
+          for (let i = 0; i < event.results.length; i++) {
+            combined += event.results[i][0].transcript + " ";
+          }
+          const cleaned = combined.trim();
+          if (cleaned) {
+            liveTranscriptBuffer = cleaned;
+            updateVoiceControlsUI();
+          }
+        };
+
+        rec.onerror = () => {
+          isListening = false;
+          updateVoiceControlsUI();
+        };
+
+        rec.onend = () => {
+          isListening = false;
+          updateVoiceControlsUI();
+        };
+
+        rec.start();
+      } catch (_) {}
+    }
+
+    function commitSpokenTurn() {
+      const text = liveTranscriptBuffer.trim();
+      if (!text) return;
+      if (recognitionInstance) {
+        try { recognitionInstance.stop(); } catch (_) {}
+      }
+      isListening = false;
+      liveTranscriptBuffer = "";
+      processUserMessage(text);
+    }
+
+    function editPartialTranscript() {
+      if (recognitionInstance) {
+        try { recognitionInstance.stop(); } catch (_) {}
+      }
+      isListening = false;
+      const input = document.getElementById("chatTextInput");
+      input.value = liveTranscriptBuffer;
+      input.focus();
+      updateVoiceControlsUI();
+    }
+
+    function clearPartialTranscript() {
+      liveTranscriptBuffer = "";
+      updateVoiceControlsUI();
+      startBrowserSpeechRecognition();
+    }
+
+    function sendTypedTurn() {
+      const input = document.getElementById("chatTextInput");
+      const text = (input.value || "").trim();
+      if (!text) return;
+      input.value = "";
+      liveTranscriptBuffer = "";
+      processUserMessage(text);
+    }
+
+    function processUserMessage(userText) {
+      const transcriptEl = document.getElementById("liveTranscriptText");
+      transcriptEl.textContent = `"${userText}"`;
+      transcriptEl.classList.remove("hidden");
+
+      const reply = generateCompanionReply(userText);
+      document.getElementById("companionReplyText").textContent = `"${reply}"`;
+      updateVoiceControlsUI();
+      speakReply(reply);
+    }
+
+    function generateCompanionReply(userText) {
+      const lower = userText.toLowerCase();
+      if (state.lang === "tr") {
+        if (lower.includes("ertele") || lower.includes("odak") || lower.includes("karışık")) {
+          return `Seni duyuyorum. Her şeyi aynı anda çözmek zorunda değiliz; şu an önündeki tek bir küçük adımı seçelim, gerisini birlikte sadeleştiririz.`;
+        }
+        return `Söylediğin şey çok değerli. ${state.archetypeTitle} bakış açısıyla baktığımızda, bugün seni ideal benliğine en çok yaklaştıracak tek hamle ne olurdu?`;
+      } else {
+        return `I hear you clearly. Looking at this through your ${state.archetypeTitle} lens, what is one small, intentional step we can take right now?`;
+      }
+    }
+
+    function updateVoiceControlsUI() {
+      const transcriptEl = document.getElementById("liveTranscriptText");
+      const partialRow = document.getElementById("partialActionRow");
+      const micBtn = document.getElementById("primaryMicBtn");
+
+      if (liveTranscriptBuffer.trim().length > 0) {
+        transcriptEl.textContent = `"${liveTranscriptBuffer}"`;
+        transcriptEl.classList.remove("hidden");
+        partialRow.classList.remove("hidden");
+        micBtn.textContent = tr("➤ Dokun ve Gönder", "➤ Tap to Send");
+      } else {
+        partialRow.classList.add("hidden");
+        if (isSpeaking) {
+          micBtn.textContent = tr("⏹ Sözünü Kes", "⏹ Interrupt");
+        } else if (isListening) {
+          micBtn.textContent = tr("🎙️ Dinleniyor...", "🎙️ Listening...");
+        } else {
+          micBtn.textContent = tr("🎙️ Konuş", "🎙️ Tap to Speak");
+        }
+      }
+    }
+
+    function renderAll() {
+      document.getElementById("headerTitle").textContent = tr("Karakter Özelleştirme", "Character Customization");
+      document.getElementById("headerSubtitle").textContent = `${state.companionName} · ${state.archetypeTitle}`;
+      document.getElementById("personaBtn").textContent = `✨ ${tr("Kişilik", "Persona")}`;
+      document.getElementById("suggestBtn").textContent = `✨ ${tr("Stil Öner", "Suggest Style")}`;
+      document.getElementById("resetBtn").textContent = `↺ ${tr("Sıfırla", "Reset")}`;
+      document.getElementById("navCharacterLabel").textContent = tr("Stüdyo", "Studio");
+      document.getElementById("navVoiceLabel").textContent = tr("Sesli Sohbet", "Voice Call");
+      document.getElementById("navDiscoveryLabel").textContent = tr("Keşif (5 Soru)", "Discovery (5)");
+
+      const activeTone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
+      document.getElementById("activeVoiceBadge").textContent = `🔊 ${tr(activeTone.tr, activeTone.en)}`;
+
+      const states = ["IDLE", "LISTENING", "SPEAKING", "REACTING"];
+      document.getElementById("statePillsRow").innerHTML = states.map(st => `
+        <span class="mini-chip ${state.visualState === st ? 'active' : ''}" onclick="state.visualState='${st}';saveState();">${st}</span>
+      `).join("");
+
+      document.getElementById("categoryBar").innerHTML = CATEGORIES.map(cat => `
+        <button class="cat-tab ${state.activeCategory === cat.id ? 'active' : ''}" onclick="state.activeCategory='${cat.id}';saveState();">
+          ${tr(cat.tr, cat.en)}
+        </button>
+      `).join("");
+
+      drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state);
+      renderCategoryPanel();
+      renderDiscoveryQuiz();
+      updateVoiceControlsUI();
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
