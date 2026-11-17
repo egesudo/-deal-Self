@@ -431,6 +431,11 @@ class ExampleRobolectricTest {
         assertEquals(false, controller.state.value.micPermissionGranted)
         assertTrue(controller.state.value.statusMessage.contains("Mikrofon izni"))
 
+        // 6. Test explicit voice-speed multiplier adjustment keeps bold/confident tone punchy
+        val updatedVoicePrefs = controller.setSpeechSpeedMultiplier(1.20f)
+        assertEquals(1.20f, controller.state.value.speechSpeedMultiplier, 0.01f)
+        assertEquals(com.example.data.model.VoiceSpeedMultiplier.BOLD_120, updatedVoicePrefs.speedMultiplierPreset)
+
         controller.release()
     }
 

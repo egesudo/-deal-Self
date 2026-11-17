@@ -92,6 +92,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ai.StreamingChunkEvent
 import com.example.data.model.AudioRoutePreference
 import com.example.data.model.CompanionState
+import com.example.data.model.VoicePreferences
+import com.example.data.model.VoiceSpeedMultiplier
 import com.example.ui.components.CharacterVisualState
 import com.example.ui.components.PixelCharacterSprite
 import com.example.ui.theme.LocalAppLanguage
@@ -133,6 +135,7 @@ fun VoiceSessionScreen(
             onCompleteReply
         )
     },
+    onUpdateVoicePreferences: (VoicePreferences) -> Unit = {},
     onCancelActiveGeneration: () -> Unit = {},
     onCloseSession: () -> Unit
 ) {
@@ -698,6 +701,71 @@ fun VoiceSessionScreen(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = tr("Sesli yanıt gönder", "Send voice turn"),
                                 tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Explicit Voice-Speed Multiplier Selector (Keeps Bold & Confident tone punchy and un-stretched)
+            val activeSpeedPreset = VoiceSpeedMultiplier.fromRate(voiceState.speechSpeedMultiplier)
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                    .testTag("voice_speed_multiplier_row")
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = tr("⚡ Konuşma Hızı Çarpanı", "⚡ Voice Speed Multiplier"),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${activeSpeedPreset.label} • ${tr(activeSpeedPreset.trSubtitle, activeSpeedPreset.enSubtitle)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.testTag("voice_speed_active_label")
+                        )
+                    }
+
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        VoiceSpeedMultiplier.entries.forEach { preset ->
+                            val isSelected = activeSpeedPreset == preset
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    val updated = currentVoiceController.setSpeechSpeedMultiplier(preset.multiplier)
+                                    onUpdateVoicePreferences(updated)
+                                },
+                                label = {
+                                    Text(
+                                        text = "${preset.label} ${tr(preset.trSubtitle, preset.enSubtitle)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.testTag("voice_speed_chip_${preset.name.lowercase()}")
                             )
                         }
                     }

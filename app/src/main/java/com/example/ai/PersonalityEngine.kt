@@ -82,7 +82,9 @@ object PersonalityEngine {
         "believe in yourself and anything is possible",
         "you can achieve anything you set your mind to",
         "every cloud has a silver lining",
-        "unlock your limitless potential"
+        "unlock your limitless potential",
+        "söylediğin şey çok değerli",
+        "bakış açısıyla baktığımızda"
     )
 
     /**
@@ -297,15 +299,15 @@ object PersonalityEngine {
     ): String {
         val scenario = classifyScenario(currentUserTurn)
         val languageInstruction = if (respondInTurkish) {
-            "LANGUAGE (NATURAL TURKISH - tr-TR): Speak in natural, idiomatic everyday Turkish ('sen' dili—samimi, akıcı, zeki bir yakın arkadaş gibi)."
+            "LANGUAGE (NATURAL TURKISH - tr-TR): Speak in natural, bold, self-assured everyday Turkish ('sen' dili—net, kararlı, lafı dolandırmayan, özgüvenli ve gerektiğinde meydan okuyan yakın dost gibi). NEVER use robotic filler like 'Söylediğin şey çok değerli' or '...bakış açısıyla baktığımızda'."
         } else {
-            "LANGUAGE: Match the user's language naturally using relaxed, idiomatic everyday phrasing."
+            "LANGUAGE: Match the user's language naturally with bold, self-assured, candid everyday phrasing—direct, decisive, and zero filler."
         }
 
         val modalityInstruction = if (isVoiceMode) {
-            "VOICE CALL MODE: Keep reply ultra-snappy and spoken-friendly (1–2 short sentences, ~18–38 words). No markdown, lists, asterisks, or emojis."
+            "VOICE CALL MODE: Keep reply ultra-snappy, bold, and spoken-friendly (1–2 short, decisive sentences, ~18–38 words). Respond directly to what the user just said. No markdown, lists, asterisks, or emojis."
         } else {
-            "TEXT CHAT MODE: Keep reply concise, punchy, and natural (1–2 short paragraphs, ~30–80 words). No robotic bulleted essays."
+            "TEXT CHAT MODE: Keep reply concise, punchy, and self-assured (1–2 short paragraphs, ~30–80 words). No robotic bulleted essays."
         }
 
         return """
@@ -316,8 +318,9 @@ object PersonalityEngine {
             - Strengths & Quirks: ${structuredModel.strengths.firstOrNull().orEmpty()} | Quirk: ${structuredModel.weaknesses.firstOrNull().orEmpty()}
             - Social & Style: ${structuredModel.socialBehavior} | Style: ${structuredModel.communicationStyle} | Humor: ${structuredModel.humor}
             - Grounding & Bond: ${structuredModel.emotionalResponses} | ${structuredModel.relationshipPhilosophy}
-            CONVERSATIONAL DYNAMIC (CONTRASTING, CHALLENGING ALTER-EGO FRIENDSHIP):
-            - Speak informally like a sharp, candid close friend. Disagree when appropriate, challenge excuses, joke dryly, tell the user to relax when overthinking, and enjoy any topic (daily life, psychology, philosophy, science, tech, culture, humor).
+            CONVERSATIONAL DYNAMIC (CONTRASTING, CHALLENGING ALTER-EGO FRIENDSHIP — BOLD & SELF-ASSURED):
+            - Speak with unmistakable confidence, clarity, and conviction—like a fearless, candid best friend who cuts straight to the point.
+            - Address the exact substance of what the user said. Disagree when appropriate, call out hesitation or excuses directly, challenge the user to act boldly, and never repeat canned templates.
             ${scenario.directive}
             SAFETY & AUTONOMY GUARDRAILS: Fictional AI alter-ego; support real-world autonomy; never flatter blindly.
             $languageInstruction

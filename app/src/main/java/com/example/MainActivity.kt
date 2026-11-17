@@ -257,6 +257,9 @@ fun AuthenticatedCompanionShell(
                         onError = onError
                     )
                 },
+                onUpdateVoicePreferences = { updatedPrefs ->
+                    viewModel.updateVoicePreferences(updatedPrefs)
+                },
                 onCancelActiveGeneration = {
                     viewModel.cancelActiveGeneration()
                 },

@@ -59,6 +59,7 @@ data class VoiceSessionUiState(
     ),
     val bluetoothConnected: Boolean = false,
     val handsFreeEnabled: Boolean = true,
+    val speechSpeedMultiplier: Float = 1.10f,
     val isMuted: Boolean = false,
     val micPermissionGranted: Boolean = true,
     val isNetworkAvailable: Boolean = true,
@@ -321,15 +322,33 @@ class VoiceSessionController(
 
     fun applyVoicePreferences(prefs: VoicePreferences) {
         currentPrefs = prefs
+        val clampedRate = prefs.speechRate.coerceIn(0.80f, 1.50f)
         tts?.setPitch(prefs.pitch.coerceIn(0.5f, 2.0f))
-        tts?.setSpeechRate(prefs.speechRate.coerceIn(0.5f, 2.0f))
+        tts?.setSpeechRate(clampedRate)
         _state.value = _state.value.copy(
             handsFreeEnabled = prefs.handsFreeAutoListen,
-            activeAudioRoute = prefs.preferredAudioRoute
+            activeAudioRoute = prefs.preferredAudioRoute,
+            speechSpeedMultiplier = clampedRate
         )
         if (sessionActive && _state.value.phase == VoicePhase.SPEAKING) {
             routeAudioForSpeaking(prefs.preferredAudioRoute)
         }
+    }
+
+    fun setSpeechSpeedMultiplier(multiplier: Float): VoicePreferences {
+        val updatedPrefs = currentPrefs.withSpeedMultiplier(multiplier)
+        applyVoicePreferences(updatedPrefs)
+        val formatted = String.format(Locale.US, "%.2fx", updatedPrefs.speechRate)
+            .replace("0x", "x")
+            .replace(".x", ".0x")
+        _state.value = _state.value.copy(
+            statusMessage = if (_state.value.voiceLanguageTag.startsWith("tr")) {
+                "Konuşma hızı: $formatted (Net ve kararlı tempo)"
+            } else {
+                "Voice speed: $formatted (Punchy & confident pace)"
+            }
+        )
+        return updatedPrefs
     }
 
     fun refreshAudioDevices() {

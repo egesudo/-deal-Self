@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>Ideal Self • 16-Bit AI Yol Arkadaşı</title>
-  <meta name="description" content="Kişiselleştirilebilir 16-bit piksel AI yol arkadaşınız ile sesli ve yazılı sohbet edin." />
+  <meta name="description" content="Kişiselleştirilebilir 16-bit piksel AI yol arkadaşınız ile cesur, özgüvenli ve gerçek zamanlı sesli sohbet edin." />
   <style>
     :root {
       --bg-cream: #F5F0E6;
@@ -41,11 +41,11 @@
 
     .app-shell {
       width: 100%;
-      max-width: 600px;
+      max-width: 620px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 14px 16px 88px;
+      padding: 14px 16px 96px;
       gap: 12px;
     }
 
@@ -68,6 +68,7 @@
       font-size: 0.8rem;
       color: var(--text-secondary);
       margin-top: 2px;
+      font-weight: 600;
     }
 
     .header-actions {
@@ -123,23 +124,35 @@
     }
 
     .sprite-box {
-      width: 122px;
-      height: 122px;
-      border-radius: 18px;
-      background: var(--surface-sage-soft);
-      border: 1px solid var(--border-soft);
+      width: 132px;
+      height: 132px;
+      border-radius: 20px;
+      background: #E4EAE3;
+      border: 1.5px solid var(--border-soft);
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
       flex-shrink: 0;
       overflow: hidden;
+      box-shadow: inset 0 2px 8px rgba(35, 31, 30, 0.06);
     }
 
     canvas.pixel-canvas {
       image-rendering: pixelated;
-      width: 108px;
-      height: 108px;
+      image-rendering: crisp-edges;
+      width: 124px;
+      height: 124px;
+    }
+
+    canvas.mini-sprite-canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      width: 58px;
+      height: 58px;
+      border-radius: 12px;
+      border: 1px solid rgba(91, 85, 80, 0.16);
+      background: #E4EAE3;
     }
 
     .stage-controls {
@@ -197,7 +210,7 @@
     .badge-row::-webkit-scrollbar { display: none; }
 
     .mini-chip {
-      padding: 4px 10px;
+      padding: 5px 10px;
       border-radius: var(--radius-pill);
       font-size: 0.72rem;
       font-weight: 600;
@@ -206,12 +219,14 @@
       border: 1px solid transparent;
       white-space: nowrap;
       cursor: pointer;
+      transition: all 0.16s ease;
     }
 
     .mini-chip.active {
       background: var(--accent-burgundy-soft);
       color: var(--accent-burgundy);
       border-color: var(--accent-burgundy);
+      font-weight: 700;
     }
 
     .category-bar {
@@ -229,7 +244,7 @@
       border: 1px solid var(--border-soft);
       background: var(--surface-card);
       color: var(--text-primary);
-      font-size: 0.84rem;
+      font-size: 0.83rem;
       font-weight: 600;
       white-space: nowrap;
       cursor: pointer;
@@ -267,6 +282,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
     }
 
     .swatch-row {
@@ -290,7 +306,7 @@
 
     .color-swatch.active {
       border: 3px solid var(--accent-burgundy);
-      transform: scale(1.14);
+      transform: scale(1.15);
     }
 
     .visual-grid {
@@ -314,6 +330,10 @@
       gap: 6px;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .grid-item:hover {
+      border-color: rgba(122, 28, 36, 0.45);
     }
 
     .grid-item.active {
@@ -363,7 +383,7 @@
       height: 10px;
       background: var(--accent-burgundy);
       border-radius: 99px;
-      transition: height 0.15s ease;
+      transition: height 0.12s ease;
     }
 
     .caption-box {
@@ -374,19 +394,27 @@
       padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      text-align: left;
     }
 
-    .live-transcript {
-      font-size: 0.88rem;
-      font-weight: 600;
+    .turn-bubble-user {
+      align-self: flex-end;
+      background: rgba(122, 28, 36, 0.1);
+      border: 1px solid rgba(122, 28, 36, 0.25);
       color: var(--accent-burgundy);
+      padding: 8px 12px;
+      border-radius: 14px 14px 4px 14px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      max-width: 90%;
     }
 
     .companion-reply {
       font-size: 0.96rem;
-      line-height: 1.45;
+      line-height: 1.5;
       color: var(--text-primary);
+      font-weight: 500;
     }
 
     .partial-actions {
@@ -399,8 +427,8 @@
 
     .mic-main-btn {
       height: 58px;
-      min-width: 210px;
-      padding: 0 24px;
+      min-width: 220px;
+      padding: 0 26px;
       border-radius: 999px;
       background: var(--accent-burgundy);
       color: #FFF9F5;
@@ -409,10 +437,23 @@
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 6px 20px rgba(122, 28, 36, 0.26);
-      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease;
+    }
+
+    .mic-main-btn.listening {
+      background: #991B1B;
+      box-shadow: 0 0 0 6px rgba(153, 27, 27, 0.18);
     }
 
     .mic-main-btn:active { transform: scale(0.96); }
+
+    .quick-prompts-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
 
     .chat-input-row {
       display: flex;
@@ -482,7 +523,7 @@
     <header class="top-bar">
       <div>
         <h1 class="brand-title" id="headerTitle">Karakter Özelleştirme</h1>
-        <p class="brand-subtitle" id="headerSubtitle">Nova · Sakin Mimar</p>
+        <p class="brand-subtitle" id="headerSubtitle">Nova · Cesur ve Kararlı Dost</p>
       </div>
       <div class="header-actions">
         <button class="pill-btn" id="langToggleBtn" onclick="toggleLanguage()">TR / EN</button>
@@ -493,7 +534,7 @@
     <section class="stage-card">
       <div class="stage-row">
         <div class="sprite-box">
-          <canvas id="mainSpriteCanvas" class="pixel-canvas" width="32" height="32"></canvas>
+          <canvas id="mainSpriteCanvas" class="pixel-canvas" width="160" height="160"></canvas>
         </div>
         <div class="stage-controls">
           <div class="stage-btn-row">
@@ -502,7 +543,7 @@
           </div>
           <div class="badge-row" id="statePillsRow"></div>
           <div class="badge-row">
-            <span class="mini-chip active" id="activeVoiceBadge">🔊 Sıcak ve Dengeli</span>
+            <span class="mini-chip active" id="activeVoiceBadge" onclick="previewVoiceTone(state.voiceToneId)">🔊 Cesur ve Özgüvenli</span>
           </div>
         </div>
       </div>
@@ -516,7 +557,7 @@
     <main id="tabVoice" class="hidden">
       <section class="panel-card voice-stage">
         <div class="badge-row">
-          <span class="mini-chip active" id="voiceStatusPill">BAĞLANDI • CANLI SESLİ SOHBET</span>
+          <span class="mini-chip active" id="voiceStatusPill">CANLI SESLİ SOHBET • NET VE KARARLI MOD</span>
         </div>
 
         <div class="waveform-bars" id="waveformBars">
@@ -526,19 +567,19 @@
           <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
         </div>
 
-        <p id="voiceHintText" style="font-size: 0.85rem; color: var(--text-secondary);">
-          Konuşmak için mikrofona dokunun; konuşurken tekrar dokunarak hemen gönderebilirsiniz.
+        <p id="voiceHintText" style="font-size: 0.84rem; color: var(--text-secondary);">
+          Mikrofona dokunup konuşun; cümleniz bittiğinde otomatik algılanır veya dokununca anında gönderilir.
         </p>
 
         <div class="caption-box">
-          <div id="liveTranscriptText" class="live-transcript hidden"></div>
+          <div id="liveTranscriptText" class="turn-bubble-user hidden"></div>
           <div id="partialActionRow" class="partial-actions hidden">
             <button class="pill-btn primary" onclick="commitSpokenTurn()" id="sendPartialBtn">➤ Hemen Gönder</button>
             <button class="pill-btn" onclick="editPartialTranscript()" id="editPartialBtn">✎ Düzenle</button>
             <button class="pill-btn" onclick="clearPartialTranscript()" id="retakePartialBtn">↺ Yeniden</button>
           </div>
           <div id="companionReplyText" class="companion-reply">
-            "Selam! Bugün gerçekten neye odaklanmak istiyoruz? Gel fazlalıkları bir kenara bırakıp konuşalım."
+            "Hazırım. Lafı dolandırmadan söyle: şu an kafanı kurcalayan veya ertelediğin asıl mesele ne?"
           </div>
         </div>
 
@@ -546,15 +587,40 @@
           🎙️ Konuş
         </button>
 
+        <div class="caption-box" id="voiceSpeedControlBox" style="padding: 11px 14px; gap: 8px;">
+          <div class="section-label" style="font-size: 0.8rem;">
+            <span id="voiceSpeedTitleLabel">⚡ Konuşma Hızı Çarpanı</span>
+            <span class="mini-chip active" id="voiceSpeedActiveBadge">1.10x · Net & Canlı</span>
+          </div>
+          <div class="badge-row" id="voiceSpeedChipsRow" style="justify-content: center; flex-wrap: wrap;"></div>
+          <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">0.85x</span>
+            <input
+              type="range"
+              id="voiceSpeedSlider"
+              min="0.85"
+              max="1.50"
+              step="0.05"
+              value="1.10"
+              style="flex: 1; accent-color: var(--accent-burgundy); cursor: pointer;"
+              oninput="setVoiceSpeedMultiplier(parseFloat(this.value), false)"
+              onchange="setVoiceSpeedMultiplier(parseFloat(this.value), true)"
+            />
+            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600;">1.50x</span>
+          </div>
+        </div>
+
+        <div class="quick-prompts-row" id="quickPromptsRow"></div>
+
         <div class="chat-input-row">
           <input
             type="text"
             id="chatTextInput"
             class="text-input"
-            placeholder="Konuşun veya cümle yazın (TR / EN)..."
+            placeholder="Doğrudan söyle veya yaz (TR / EN)..."
             onkeydown="if(event.key==='Enter') sendTypedTurn()"
           />
-          <button class="pill-btn primary" onclick="sendTypedTurn()">Gönder</button>
+          <button class="pill-btn primary" onclick="sendTypedTurn()" id="sendTypedBtn">Gönder</button>
         </div>
       </section>
     </main>
@@ -582,88 +648,223 @@
   </nav>
 
   <script>
-    const STORAGE_KEY = "idealself_character_customization_v1";
+    const STORAGE_KEY = "idealself_character_customization_v2";
 
-    const DEFAULT_STATE = {
-      lang: "tr",
-      companionName: "Nova",
-      archetypeTitle: "Sakin Mimar",
-      skinColor: "#F2C6A0",
-      presentation: "androgynous",
-      hairStyle: "messy_crop",
-      hairColor: "#2C222B",
-      eyewear: "none",
-      eyeColor: "#4A6B5D",
-      outfitColor: "#7A1C24",
-      outfitStyle: "scholar_vest",
-      expression: "calm",
-      voiceToneId: "warm_balanced",
-      activeCategory: "silhouette",
-      visualState: "IDLE",
-      discoveryStep: 0,
-      discoveryAnswers: ["", "", "", "", ""]
-    };
+    // Exact Android PixelCharacterCanvas.kt IDs & palettes
+    const SKIN_TONES = [
+      { id: "porcelain_glow", hex: "#FDE2D2", tr: "Porselen", en: "Porcelain" },
+      { id: "warm_ivory", hex: "#F7C5A8", tr: "Sıcak Fildişi", en: "Warm Ivory" },
+      { id: "golden_sand", hex: "#E09F70", tr: "Altın Kum", en: "Golden Sand" },
+      { id: "rich_amber", hex: "#B06C44", tr: "Kehribar", en: "Rich Amber" },
+      { id: "deep_espresso", hex: "#6E3B26", tr: "Espresso", en: "Espresso" }
+    ];
 
-    let state = loadState();
-    let isListening = false;
-    let isSpeaking = false;
-    let liveTranscriptBuffer = "";
-    let recognitionInstance = null;
+    const HAIR_COLORS = [
+      { id: "midnight_indigo", hex: "#2A2B5F", tr: "Gece İndigo", en: "Midnight Indigo" },
+      { id: "obsidian_black", hex: "#1C1917", tr: "Obsidyen", en: "Obsidian" },
+      { id: "crimson_ember", hex: "#B91C1C", tr: "Kızıl Kor", en: "Crimson Ember" },
+      { id: "silver_starlight", hex: "#E2E8F0", tr: "Yıldız Gümüşü", en: "Silver Starlight" },
+      { id: "honey_blonde", hex: "#F59E0B", tr: "Kehribar Sarı", en: "Honey Blonde" },
+      { id: "pastel_lilac", hex: "#C084FC", tr: "Lila", en: "Pastel Lilac" },
+      { id: "forest_teal", hex: "#0D9488", tr: "Orman Yeşili", en: "Forest Teal" }
+    ];
+
+    const EYE_COLORS = [
+      { id: "amber_gold", hex: "#F59E0B" },
+      { id: "emerald_mist", hex: "#10B981" },
+      { id: "sapphire_beam", hex: "#3B82F6" },
+      { id: "violet_nebula", hex: "#8B5CF6" },
+      { id: "ruby_spark", hex: "#F43F5E" }
+    ];
+
+    const OUTFIT_PALETTES = [
+      { id: "burgundy_gold", primary: "#7A1C24", accent: "#F59E0B", tr: "Bordo & Altın", en: "Burgundy & Gold" },
+      { id: "nebula_indigo", primary: "#4F46E5", accent: "#22D3EE", tr: "İndigo & Camgöbeği", en: "Indigo & Cyan" },
+      { id: "emerald_sage", primary: "#059669", accent: "#FDE68A", tr: "Zümrüt & Krem", en: "Emerald & Cream" },
+      { id: "crimson_gold", primary: "#E11D48", accent: "#F59E0B", tr: "Kızıl & Kehribar", en: "Crimson & Gold" },
+      { id: "monochrome_zen", primary: "#334155", accent: "#F8FAFC", tr: "Gece Antrasit", en: "Slate Monochrome" },
+      { id: "sunset_coral", primary: "#EA580C", accent: "#FBBF24", tr: "Günbatımı Mercan", en: "Sunset Coral" }
+    ];
+
+    const HAIR_STYLES = [
+      { id: "tousled_rebel", tr: "Asi Dağınık", en: "Tousled Rebel", subTr: "Katmanlı kesim & perçem", subEn: "Layered rebel fringe" },
+      { id: "textured_undercut", tr: "Keskin Undercut", en: "Textured Undercut", subTr: "Yanları kısa, üstü hacimli", subEn: "Shaved temple, swept top" },
+      { id: "starlight_bob", tr: "Yıldız Bob", en: "Starlight Bob", subTr: "Çene hizası modern kesim", subEn: "Sleek chin-length bob" },
+      { id: "vintage_shag", tr: "Retro Shag", en: "Vintage Shag", subTr: "Omuz boyu katmanlı", subEn: "70s rock-and-roll layers" },
+      { id: "curly_cloud", tr: "Bulut Bukle", en: "Curly Cloud", subTr: "Yüksek hacimli bukleler", subEn: "High-volume textured curls" },
+      { id: "braided_crown", tr: "Örgülü Taç", en: "Braided Crown", subTr: "Uzun örgülü silüet", subEn: "Long sculpted braids" },
+      { id: "bleached_buzz", tr: "Çizik Buzz", en: "Bleached Buzz", subTr: "Minimalist & kaş üstü çizik", subEn: "Minimalist razor slit" },
+      { id: "cyber_swept", tr: "Rüzgar Kesim", en: "Cyber Swept", subTr: "Asimetrik yana taranmış", subEn: "Asymmetric swept bangs" }
+    ];
+
+    const FACE_FEATURES = [
+      { id: "tinted_aviator", tr: "Kızıl Aviator", en: "Tinted Aviator", subTr: "Altın köprülü renkli cam", subEn: "Rose-amber gold aviators" },
+      { id: "round_tortoise", tr: "Kemik Çerçeve", en: "Tortoise Round", subTr: "Entelektüel yuvarlak çerçeve", subEn: "Classic tortoise frames" },
+      { id: "visor_clip", tr: "Kehribar Vizör", en: "Amber Visor", subTr: "Fütüristik tek parça cam", subEn: "Sleek amber visor clip" },
+      { id: "brow_plaster", tr: "Burun Bandı & Çizik", en: "Brow Plaster", subTr: "Asi burun bandı ve kaş çiziği", subEn: "Nose plaster & brow slit" },
+      { id: "sharp_stubble", tr: "Kirli Sakal", en: "Sharp Stubble", subTr: "Belirgin çene hattı gölgesi", subEn: "Defined jawline stubble" },
+      { id: "soft_blush", tr: "Doğal Allık", en: "Soft Blush", subTr: "Sıcak yanak tonu", subEn: "Subtle warm cheek tint" },
+      { id: "pixel_freckles", tr: "Piksel Çiller", en: "Pixel Freckles", subTr: "Güneş öpücüğü çiller", subEn: "Sun-kissed nose freckles" },
+      { id: "star_mark", tr: "Yıldız İzi", en: "Star Mark", subTr: "Elmacık kemiği yıldız detayı", subEn: "Golden cheekbone star" }
+    ];
+
+    const LAYERED_TOPS = [
+      { id: "rebel_leather", tr: "Asi Deri Ceket", en: "Rebel Leather", subTr: "Gümüş zımbalı motorcu ceketi", subEn: "Studded moto leather jacket" },
+      { id: "trench_havana", tr: "Havana Trençkot", en: "Havana Trench", subTr: "Desenli gömlek üstü uzun trençkot", subEn: "Long trench over Havana shirt" },
+      { id: "blazer_hoodie", tr: "Blazer & Hoodie", en: "Blazer & Hoodie", subTr: "Keskin ceket ve sokak kapüşonlusu", subEn: "Tailored blazer over hoodie" },
+      { id: "scholar_vest", tr: "Mimar Yeleği", en: "Architect Vest", subTr: "Boğazlı kazak ve yapısal yelek", subEn: "High turtleneck & vest" },
+      { id: "shear_bomber", tr: "Kürklü Bomber", en: "Shearling Bomber", subTr: "Krem yakalı pilot ceketi", subEn: "Cream collar aviator bomber" },
+      { id: "patch_cardi", tr: "Atölye Hırkası", en: "Patchwork Cardi", subTr: "Asimetrik dokuma tasarım hırka", subEn: "Asymmetric knit cardigan" },
+      { id: "velvet_mesh", tr: "Kadife & File", en: "Velvet & Mesh", subTr: "Gece mavisi dik yaka ve kadife klapa", subEn: "Dark mesh & velvet lapels" },
+      { id: "field_flannel", tr: "Saha Oduncu", en: "Field Flannel", subTr: "Çok cepli saha gömleği", subEn: "Utility pockets & plaid" }
+    ];
+
+    const TROUSERS_LIST = [
+      { id: "wide_pleat", tr: "Pileli Geniş", en: "Wide Pleated", subTr: "Akıcı terzi işi kesim", subEn: "Tailored wide trousers" },
+      { id: "cargo_punk", tr: "Tokalı Kargo", en: "Strapped Cargo", subTr: "Yan cepli ve kontrast şeritli", subEn: "Side pockets & utility straps" },
+      { id: "cuff_denim", tr: "Kıvrık Selvedge", en: "Cuffed Selvedge", subTr: "Kırmızı dikişli kıvrık paça", subEn: "Red-stitch cuffed denim" },
+      { id: "para_drape", tr: "Paraşüt Kesim", en: "Parachute Drape", subTr: "Modern bol sokak kesimi", subEn: "Relaxed technical drape" },
+      { id: "tartan_puk", tr: "Ekose Punk", en: "Tartan Punk", subTr: "Çapraz ekose desenli", subEn: "Cross-checkered punk cut" },
+      { id: "flare_cord", tr: "Kadife İspanyol", en: "Flared Corduroy", subTr: "70'ler sıcak kadife dokusu", subEn: "Warm brown flared cords" }
+    ];
+
+    const FOOTWEAR_LIST = [
+      { id: "combat_boot", tr: "Platform Bot", en: "Combat Boots", subTr: "Kalın tabanlı bağcıklı", subEn: "Chunky lug-sole combat" },
+      { id: "chelsea_bt", tr: "Deri Chelsea", en: "Chelsea Boots", subTr: "Kestane deri bilek botu", subEn: "Sleek leather ankle boots" },
+      { id: "retro_high", tr: "Retro High-Top", en: "Retro High-Tops", subTr: "Krem-kızıl bilekli sneaker", subEn: "Vintage court sneakers" },
+      { id: "lug_loafer", tr: "Kalın Loafer", en: "Lug Loafers", subTr: "Beyaz çorap & altın tokalı loafer", subEn: "Chunky loafers & white socks" },
+      { id: "moto_buckle", tr: "Tokalı Motorcu", en: "Moto Buckle", subTr: "Çift metal tokalı deri bot", subEn: "Brass-buckled moto boots" },
+      { id: "tabi_avant", tr: "Avant-Garde Tabi", en: "Avant Tabi", subTr: "Mimari ayrık burunlu tasarım", subEn: "Split-toe architectural boot" }
+    ];
+
+    const ACCESSORIES_LIST = [
+      { id: "crossbody_bag", tr: "Çapraz Deri Çanta", en: "Crossbody Bag", subTr: "Tokalı omuz askılı çanta", subEn: "Leather strap & hip satchel" },
+      { id: "silver_chain", tr: "Gümüş Zincir", en: "Silver Chain", subTr: "Yaka ve bel zinciri", subEn: "Collar & trouser wallet chain" },
+      { id: "studded_belt", tr: "Zımbalı Kemer", en: "Studded Belt", subTr: "Sarkık uçlu metal kemer", subEn: "Metal grommet belt tail" },
+      { id: "starlight_headphones", tr: "Stüdyo Kulaklık", en: "Studio Headphones", subTr: "Kafa üstü retro kulaklık", subEn: "Over-ear studio headphones" },
+      { id: "silk_scarf", tr: "İpek Fular", en: "Silk Scarf", subTr: "Boyun detaylı kontrast fular", subEn: "Draped neck accent scarf" },
+      { id: "ear_cuff_pin", tr: "Altın Küpe & Rozet", en: "Ear Cuff & Pin", subTr: "Kulak kıkırdak halkası ve yaka iğnesi", subEn: "Brass ear cuff & lapel pin" },
+      { id: "crown_sprout", tr: "Filiz Tacı", en: "Crown Sprout", subTr: "Baş üstü piksel yaprak", subEn: "Playful pixel leaf sprout" },
+      { id: "none", tr: "Sade (Aksesuarsız)", en: "Minimal (None)", subTr: "Ekstra aksesuar yok", subEn: "Clean silhouette" }
+    ];
+
+    const EXPRESSIONS_LIST = [
+      { id: "warm_smile", eye: "sparkle_round", aura: "ember_sparks", tr: "Özgüvenli Yarım Gülüş", en: "Confident Smirk", subTr: "Karizmatik, emin ve hazır", subEn: "Asymmetric self-assured smirk" },
+      { id: "determined", eye: "calm_focused", aura: "solar_halo", tr: "Sarsılmaz Kararlılık", en: "Unshakeable Focus", subTr: "Keskin bakış ve net duruş", subEn: "Sharp gaze & decisive stance" },
+      { id: "joyful", eye: "cheerful_arc", aura: "emerald_orbit", tr: "Cesur Neşe", en: "Bold Joy", subTr: "Enerjik ve yüksek motivasyon", subEn: "Warm, radiant energy" },
+      { id: "wink", eye: "sparkle_round", aura: "velvet_pulse", tr: "Meydan Okuyan Göz Kırpma", en: "Challenging Wink", subTr: "Kıpır kıpır ve zeki", subEn: "Playful, sharp-witted wink" }
+    ];
 
     const VOICE_TONES = [
-      { id: "warm_balanced", tr: "Sıcak ve Dengeli", en: "Warm & Balanced", subTr: "Samimi, doğal ve dingin", subEn: "Friendly, natural & grounded", pitch: 1.0, rate: 1.0, match: "androgynous" },
-      { id: "deep_resonant", tr: "Derin ve Karizmatik", en: "Deep & Resonant", subTr: "Tok, güven veren bariton ton", subEn: "Rich, reassuring low tone", pitch: 0.84, rate: 0.94, match: "masculine" },
-      { id: "bright_expressive", tr: "Canlı ve Neşeli", en: "Bright & Expressive", subTr: "Enerjik, berrak ve motive edici", subEn: "Clear, upbeat & encouraging", pitch: 1.16, rate: 1.06, match: "feminine" },
-      { id: "velvet_reflective", tr: "Kadife ve Bilge", en: "Velvet & Reflective", subTr: "Yumuşak, sakin ve düşündürücü", subEn: "Soft, unhurried & meditative", pitch: 0.91, rate: 0.89, match: "androgynous" },
-      { id: "crisp_focused", tr: "Net ve Odaklı", en: "Crisp & Focused", subTr: "Dinamik, pratik ve kararlı", subEn: "Sharp, articulate & action-ready", pitch: 1.05, rate: 1.12, match: "masculine" }
+      { id: "bold_confident", tr: "Cesur ve Özgüvenli", en: "Bold & Self-Assured", subTr: "Net, kararlı, lafı dolandırmayan dost", subEn: "Direct, fearless & unhesitating friend", pitch: 0.96, rate: 1.05, match: "androgynous" },
+      { id: "crisp_focused", tr: "Keskin ve Odaklı", en: "Crisp & Focused", subTr: "Dinamik, pratik ve meydan okuyan", subEn: "Sharp, articulate & action-ready", pitch: 1.02, rate: 1.08, match: "masculine" },
+      { id: "deep_resonant", tr: "Derin ve Karizmatik", en: "Deep & Resonant", subTr: "Tok, sarsılmaz güven veren ton", subEn: "Rich, commanding baritone", pitch: 0.86, rate: 0.98, match: "masculine" },
+      { id: "warm_balanced", tr: "Sıcak ve Dengeli", en: "Warm & Balanced", subTr: "Samimi, doğal ve net", subEn: "Friendly, natural & grounded", pitch: 1.00, rate: 1.02, match: "androgynous" },
+      { id: "bright_expressive", tr: "Canlı ve Enerjik", en: "Bright & Expressive", subTr: "Berrak, hızlı ve ateşleyici", subEn: "Clear, upbeat & high-energy", pitch: 1.10, rate: 1.07, match: "feminine" }
     ];
 
     const CATEGORIES = [
-      { id: "silhouette", tr: "Silüet", en: "Silhouette" },
+      { id: "silhouette", tr: "Silüet & Ses", en: "Silhouette & Voice" },
       { id: "hair", tr: "Saç", en: "Hair" },
-      { id: "eyewear", tr: "Gözlük", en: "Eyewear" },
-      { id: "outfit", tr: "Kıyafet", en: "Outfit" },
-      { id: "expressions", tr: "İfadeler", en: "Expressions" }
+      { id: "face", tr: "Yüz & Gözlük", en: "Face & Eyewear" },
+      { id: "top", tr: "Üst Giyim", en: "Outerwear & Top" },
+      { id: "bottoms", tr: "Pantolon & Bot", en: "Trousers & Boots" },
+      { id: "accessory", tr: "Aksesuar & İfade", en: "Gear & Expression" }
     ];
 
     const DISCOVERY_QUESTIONS = [
       {
         tr: "1/5 · İdeal benliğin hangi temel karakter özelliğini taşısın?",
         en: "1/5 · What core trait should your Ideal Self embody?",
-        chipsTr: ["Sakin ve Özgüvenli", "Cesur ve Yaratıcı", "Derin ve Analitik", "Sıcak ve Esprili"],
-        chipsEn: ["Calm & Confident", "Bold & Creative", "Deep & Analytical", "Warm & Witty"]
+        chipsTr: ["Cesur ve Yaratıcı", "Net, Kararlı ve Özgüvenli", "Derin ve Analitik", "Sıcak ve Esprili"],
+        chipsEn: ["Bold & Creative", "Decisive & Self-Assured", "Deep & Analytical", "Warm & Witty"]
       },
       {
         tr: "2/5 · Hayatta senin için en vazgeçilmez değer hangisi?",
         en: "2/5 · What personal value matters most to you?",
-        chipsTr: ["Zihinsel Berraklık", "Özgünlük ve Özgürlük", "Sürekli Gelişim", "Anlamlı Bağlar"],
-        chipsEn: ["Mindful Clarity", "Authenticity & Freedom", "Continuous Mastery", "Meaningful Connection"]
+        chipsTr: ["Özgünlük ve Cesaret", "Zihinsel Berraklık", "Sürekli Üretim ve Eylem", "Gerçek ve Dürüst Bağlar"],
+        chipsEn: ["Authenticity & Courage", "Mindful Clarity", "Relentless Execution", "Candid Connection"]
       },
       {
-        tr: "3/5 · Zorluklar veya stres karşısında nasıl tepki vermeni hatırlatsın?",
-        en: "3/5 · How should your companion ground you under pressure?",
-        chipsTr: ["Derin nefes alıp sadeleştirerek", "Mizahla ve rahatlatarak", "Doğrudan çözüm adımlarına odaklanarak"],
-        chipsEn: ["Pause and simplify", "Lighten with perspective", "Focus on direct next steps"]
+        tr: "3/5 · Bahaneler veya tereddüt anında sana nasıl yaklaşsın?",
+        en: "3/5 · How should your companion react when you hesitate?",
+        chipsTr: ["Lafı dolandırmadan yüzleştirip meydan okuyarak", "Hemen en cesur ilk adımı seçtirerek", "Kafamdaki gürültüyü tek cümleyle keserek"],
+        chipsEn: ["Call out excuses & challenge me directly", "Push me into the boldest first move", "Cut through overthinking in one sentence"]
       },
       {
-        tr: "4/5 · Yol arkadaşın seninle hangi iletişim tonunda konuşsun?",
-        en: "4/5 · How should your companion communicate with you?",
-        chipsTr: ["Samimi ve Sorgulayıcı", "Net ve Eylem Odaklı", "Şefkatli ve Destekleyici"],
-        chipsEn: ["Warm & Socratic", "Crisp & Action-Oriented", "Empathetic & Supportive"]
+        tr: "4/5 · Yol arkadaşın seninle hangi konuşma tarzında konuşsun?",
+        en: "4/5 · What speaking style should your companion use?",
+        chipsTr: ["Net, kararlı, lafı dolandırmayan ve meydan okuyan dost", "Cesur, enerjik ve aksiyon odaklı", "Sakin ama sarsılmaz özgüvenli"],
+        chipsEn: ["Direct, fearless & challenging close friend", "Bold, energetic & action-driven", "Calm with unshakeable conviction"]
       },
       {
-        tr: "5/5 · Önümüzdeki dönemde gerçekleştirmek istediğin ana hedef ne?",
-        en: "5/5 · What is your primary growth goal right now?",
-        chipsTr: ["Ertelemeyi bırakıp üretmek", "Kendi projemi hayata geçirmek", "Dengeli ve huzurlu bir rutin kurmak"],
-        chipsEn: ["Overcome procrastination", "Launch my creative project", "Build a calm daily rhythm"]
+        tr: "5/5 · Şu an ertelediğin veya başarmak istediğin asıl hedef ne?",
+        en: "5/5 · What is the real goal you want to conquer right now?",
+        chipsTr: ["Ertelemeyi kesip projemi canlıya almak", "Kararsızlığı bırakıp net adım atmak", "Her gün tavizsiz odaklanmak"],
+        chipsEn: ["Stop hesitating and ship my project", "Make decisive moves without overthinking", "Build unbreakable daily focus"]
       }
     ];
+
+    const DEFAULT_STATE = {
+      lang: "tr",
+      companionName: "Nova",
+      archetypeTitle: "Cesur ve Kararlı Dost",
+      skinToneId: "warm_ivory",
+      presentation: "androgynous",
+      hairStyleId: "tousled_rebel",
+      hairColorId: "midnight_indigo",
+      eyeStyleId: "sparkle_round",
+      eyeColorId: "amber_gold",
+      faceFeatureId: "tinted_aviator",
+      layeredTopId: "rebel_leather",
+      trousersId: "wide_pleat",
+      footwearId: "combat_boot",
+      accessoryId: "crossbody_bag",
+      colorPaletteId: "burgundy_gold",
+      auraEffectId: "ember_sparks",
+      expressionDefault: "warm_smile",
+      voiceToneId: "bold_confident",
+      voiceSpeedMultiplier: 1.10,
+      activeCategory: "silhouette",
+      visualState: "IDLE",
+      discoveryStep: 0,
+      discoveryAnswers: [
+        "Cesur ve Yaratıcı",
+        "Özgünlük ve Cesaret",
+        "Lafı dolandırmadan yüzleştirip meydan okuyarak",
+        "Net, kararlı, lafı dolandırmayan ve meydan okuyan dost",
+        "Ertelemeyi kesip projemi canlıya almak"
+      ]
+    };
+
+    const VOICE_SPEED_PRESETS = [
+      { mult: 0.95, label: "0.95x", tr: "Sakin", en: "Relaxed" },
+      { mult: 1.00, label: "1.0x", tr: "Doğal", en: "Natural" },
+      { mult: 1.10, label: "1.10x", tr: "Net & Canlı", en: "Punchy" },
+      { mult: 1.20, label: "1.20x", tr: "Cesur & Hızlı", en: "Bold Pace" },
+      { mult: 1.35, label: "1.35x", tr: "Dinamik", en: "Rapid" }
+    ];
+
+    let state = loadState();
+    let isListening = false;
+    let isSpeaking = false;
+    let liveTranscriptBuffer = "";
+    let recognitionInstance = null;
+    let autoSendSilenceTimer = null;
+    let conversationHistory = [];
+    let usedReplyIndices = new Set();
+
+    // Animation loop variables matching PixelCharacterCanvas.kt
+    let animTick = 0;
+    let isBlinking = false;
+    let talkFrame = 0;
 
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          return { ...DEFAULT_STATE, ...JSON.parse(raw) };
+          const parsed = JSON.parse(raw);
+          return { ...DEFAULT_STATE, ...parsed };
         }
       } catch (_) {}
       return { ...DEFAULT_STATE };
@@ -692,95 +893,547 @@
     }
 
     function suggestRandomStyle() {
-      const skins = ["#F8D9C0", "#F2C6A0", "#D99B72", "#A86B43", "#6E4228"];
-      const hairs = ["messy_crop", "starlight_bob", "long_wave", "spiky_punk"];
-      const hairColors = ["#2C222B", "#7A1C24", "#D49B3B", "#4A6B5D", "#6C5CE7"];
-      const outfits = ["#7A1C24", "#3B5249", "#2E4057", "#8C5E3C", "#4A3E5D"];
-      const glasses = ["none", "round_tortoise", "cyber_visor", "thin_gold"];
-      const expressions = ["calm", "joy", "focused", "sparkle"];
-      state.skinColor = skins[Math.floor(Math.random() * skins.length)];
-      state.hairStyle = hairs[Math.floor(Math.random() * hairs.length)];
-      state.hairColor = hairColors[Math.floor(Math.random() * hairColors.length)];
-      state.outfitColor = outfits[Math.floor(Math.random() * outfits.length)];
-      state.eyewear = glasses[Math.floor(Math.random() * glasses.length)];
-      state.expression = expressions[Math.floor(Math.random() * expressions.length)];
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)].id;
+      state.skinToneId = pick(SKIN_TONES);
+      state.hairStyleId = pick(HAIR_STYLES);
+      state.hairColorId = pick(HAIR_COLORS);
+      state.eyeColorId = pick(EYE_COLORS);
+      state.faceFeatureId = pick(FACE_FEATURES);
+      state.layeredTopId = pick(LAYERED_TOPS);
+      state.trousersId = pick(TROUSERS_LIST);
+      state.footwearId = pick(FOOTWEAR_LIST);
+      state.accessoryId = pick(ACCESSORIES_LIST);
+      state.colorPaletteId = pick(OUTFIT_PALETTES);
+      const expr = EXPRESSIONS_LIST[Math.floor(Math.random() * EXPRESSIONS_LIST.length)];
+      state.expressionDefault = expr.id;
+      state.eyeStyleId = expr.eye;
+      state.auraEffectId = expr.aura;
       saveState();
     }
 
-    function drawPixelCharacter(canvas, customState) {
+    // Color helpers matching PixelCharacterCanvas.kt
+    function hexToRgb(hex) {
+      const clean = hex.replace("#", "");
+      const num = parseInt(clean, 16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+      };
+    }
+
+    function shadeHex(hex, factor, alpha = 1) {
+      const { r, g, b } = hexToRgb(hex);
+      const nr = Math.max(0, Math.min(255, Math.round(r * factor)));
+      const ng = Math.max(0, Math.min(255, Math.round(g * factor)));
+      const nb = Math.max(0, Math.min(255, Math.round(b * factor)));
+      return alpha < 1 ? `rgba(${nr},${ng},${nb},${alpha})` : `rgb(${nr},${ng},${nb})`;
+    }
+
+    function tintHex(hex, mixWhite = 0.25) {
+      const { r, g, b } = hexToRgb(hex);
+      const nr = Math.min(255, Math.round(r + (255 - r) * mixWhite));
+      const ng = Math.min(255, Math.round(g + (255 - g) * mixWhite));
+      const nb = Math.min(255, Math.round(b + (255 - b) * mixWhite));
+      return `rgb(${nr},${ng},${nb})`;
+    }
+
+    function lookupSkinHex(id) {
+      const found = SKIN_TONES.find(x => x.id === id);
+      return found ? found.hex : "#F7C5A8";
+    }
+
+    function lookupHairHex(id) {
+      const found = HAIR_COLORS.find(x => x.id === id);
+      return found ? found.hex : "#2A2B5F";
+    }
+
+    function lookupEyeHex(id) {
+      const found = EYE_COLORS.find(x => x.id === id);
+      return found ? found.hex : "#F59E0B";
+    }
+
+    function lookupPalette(id) {
+      const found = OUTFIT_PALETTES.find(x => x.id === id);
+      return found || OUTFIT_PALETTES[0];
+    }
+
+    /**
+     * Exact 1:1 port of Android's PixelCharacterCanvas.kt 32x32 RPG Sprite Engine
+     */
+    function drawPixelCharacter(canvas, customState, isMiniPreview = false) {
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const s = customState || state;
-      ctx.clearRect(0, 0, 32, 32);
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
 
-      ctx.fillStyle = "rgba(122, 28, 36, 0.08)";
-      ctx.fillRect(4, 4, 24, 24);
+      // 1. Studio Frame & Radial Backdrop (#F8F5EE -> #E4EAE3 -> #CFD8CE)
+      const grad = ctx.createRadialGradient(W * 0.5, H * 0.42, W * 0.05, W * 0.5, H * 0.5, W * 0.65);
+      grad.addColorStop(0, "#F8F5EE");
+      grad.addColorStop(0.65, "#E4EAE3");
+      grad.addColorStop(1, "#CFD8CE");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
 
-      ctx.fillStyle = s.hairColor || "#2C222B";
-      if (s.hairStyle === "long_wave" || s.hairStyle === "starlight_bob") {
-        ctx.fillRect(8, 7, 16, 14);
+      const gridSize = 32;
+      const px = W / gridSize;
+      const bobOffset = isMiniPreview ? 0 : Math.round(Math.sin(animTick * 0.08)) * (px * 0.35);
+
+      const skinColor = lookupSkinHex(s.skinToneId);
+      const skinShadow = shadeHex(skinColor, 0.86);
+      const hairColor = lookupHairHex(s.hairColorId);
+      const hairHighlight = tintHex(hairColor, 0.25);
+      const hairShadow = shadeHex(hairColor, 0.78);
+      const eyeColor = lookupEyeHex(s.eyeColorId);
+      const palette = lookupPalette(s.colorPaletteId);
+      const outfitPrimary = palette.primary;
+      const outfitPrimaryDark = shadeHex(outfitPrimary, 0.76);
+      const outfitAccent = palette.accent;
+
+      function drawPx(gx, gy, gw, gh, color, applyBob = true) {
+        ctx.fillStyle = color;
+        const x = Math.floor(gx * px);
+        const y = Math.floor(gy * px + (applyBob ? bobOffset : 0));
+        const w = Math.ceil(gw * px);
+        const h = Math.ceil(gh * px);
+        ctx.fillRect(x, y, w, h);
+      }
+
+      // Ground shadow ellipse under character
+      ctx.fillStyle = "rgba(181, 190, 182, 0.75)";
+      ctx.beginPath();
+      ctx.ellipse(W * 0.5, 29.3 * px, 8.5 * px, 1.4 * px, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dynamic state aura ring
+      if (!isMiniPreview && s.visualState && s.visualState !== "IDLE") {
+        let ringColor = "rgba(122, 28, 36, 0.28)";
+        if (s.visualState === "LISTENING") ringColor = "rgba(16, 185, 129, 0.35)";
+        else if (s.visualState === "SPEAKING") ringColor = "rgba(244, 63, 94, 0.38)";
+        else if (s.visualState === "REACTING") ringColor = "rgba(245, 158, 11, 0.38)";
+        ctx.strokeStyle = ringColor;
+        ctx.lineWidth = Math.max(2, px * 0.7);
+        ctx.beginPath();
+        ctx.arc(W * 0.5, H * 0.5, W * 0.43, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 1. Floating Aura Particles
+      const auraColor = s.auraEffectId === "emerald_orbit" ? "#34D399"
+        : s.auraEffectId === "velvet_pulse" ? "#F43F5E"
+        : s.auraEffectId === "solar_halo" ? "#FBBF24"
+        : "#F59E0B";
+      const drift = isMiniPreview ? 0 : Math.round(Math.sin(animTick * 0.06));
+      drawPx(4, 7 + drift, 1, 1, auraColor, false);
+      drawPx(27, 9 - drift, 1, 1, outfitAccent, false);
+      drawPx(6, 21 - drift, 1, 1, auraColor, false);
+      drawPx(26, 19 + drift, 1, 1, outfitAccent, false);
+
+      // 2. Back Hair Layer
+      const hs = s.hairStyleId || "tousled_rebel";
+      if (hs === "braided_crown") {
+        drawPx(8, 5, 16, 15, hairShadow);
+        drawPx(7, 10, 2, 12, hairColor);
+        drawPx(23, 10, 2, 12, hairColor);
+        drawPx(7, 21, 2, 1, outfitAccent);
+        drawPx(23, 21, 2, 1, outfitAccent);
+      } else if (hs === "starlight_bob") {
+        drawPx(8, 5, 16, 11, hairShadow);
+      } else if (hs === "vintage_shag") {
+        drawPx(8, 5, 16, 13, hairShadow);
+        drawPx(7, 9, 2, 8, hairColor);
+        drawPx(23, 9, 2, 8, hairColor);
+      } else if (hs === "curly_cloud") {
+        drawPx(7, 3, 18, 12, hairShadow);
+        drawPx(6, 6, 20, 8, hairColor);
+      } else if (hs === "tousled_rebel" || hs === "textured_undercut" || hs === "bleached_buzz" || hs === "cyber_swept") {
+        drawPx(9, 5, 14, 8, hairShadow);
       } else {
-        ctx.fillRect(9, 6, 14, 9);
+        drawPx(8, 5, 16, 12, hairShadow);
       }
 
-      ctx.fillStyle = s.skinColor || "#F2C6A0";
-      ctx.fillRect(10, 8, 12, 11);
-
-      ctx.fillStyle = s.hairColor || "#2C222B";
-      ctx.fillRect(9, 6, 14, 4);
-      if (s.hairStyle === "spiky_punk") {
-        ctx.fillRect(11, 4, 3, 2);
-        ctx.fillRect(16, 4, 3, 2);
-      }
-
-      ctx.fillStyle = s.eyeColor || "#4A6B5D";
-      ctx.fillRect(12, 12, 2, 2);
-      ctx.fillRect(18, 12, 2, 2);
-
-      if (s.eyewear === "round_tortoise" || s.eyewear === "thin_gold") {
-        ctx.fillStyle = s.eyewear === "thin_gold" ? "#D4AF37" : "#5C3A21";
-        ctx.fillRect(11, 11, 4, 4);
-        ctx.fillRect(17, 11, 4, 4);
-        ctx.fillRect(15, 12, 2, 1);
-        ctx.fillStyle = s.eyeColor || "#4A6B5D";
-        ctx.fillRect(12, 12, 2, 2);
-        ctx.fillRect(18, 12, 2, 2);
-      } else if (s.eyewear === "cyber_visor") {
-        ctx.fillStyle = "#38BDF8";
-        ctx.fillRect(10, 11, 12, 3);
-      }
-
-      ctx.fillStyle = "#7A1C24";
-      if (s.expression === "joy" || s.visualState === "SPEAKING") {
-        ctx.fillRect(14, 16, 4, 2);
+      // 3. Legs & Trousers (rows 22..27)
+      drawPx(11, 22, 4, 6, skinColor);
+      drawPx(17, 22, 4, 6, skinColor);
+      const trId = s.trousersId || "wide_pleat";
+      if (trId === "wide_pleat") {
+        drawPx(10, 22, 12, 2, "#1E293B");
+        drawPx(10, 24, 5, 4, "#1E293B");
+        drawPx(17, 24, 5, 4, "#1E293B");
+        drawPx(12, 23, 1, 5, "#334155");
+        drawPx(19, 23, 1, 5, "#334155");
+      } else if (trId === "cargo_punk") {
+        drawPx(10, 22, 12, 2, "#292524");
+        drawPx(10, 24, 5, 4, "#292524");
+        drawPx(17, 24, 5, 4, "#292524");
+        drawPx(9, 24, 2, 2, "#44403C");
+        drawPx(21, 24, 2, 2, "#44403C");
+        drawPx(10, 25, 2, 1, outfitAccent);
+        drawPx(20, 25, 2, 1, outfitAccent);
+      } else if (trId === "cuff_denim") {
+        drawPx(11, 22, 10, 2, "#1E3A8A");
+        drawPx(11, 24, 4, 3, "#1E3A8A");
+        drawPx(17, 24, 4, 3, "#1E3A8A");
+        drawPx(11, 26, 4, 1, "#93C5FD");
+        drawPx(17, 26, 4, 1, "#93C5FD");
+        drawPx(11, 26, 1, 1, "#EF4444");
+        drawPx(20, 26, 1, 1, "#EF4444");
+      } else if (trId === "tartan_puk") {
+        drawPx(11, 22, 10, 2, "#7F1D1D");
+        drawPx(11, 24, 4, 4, "#7F1D1D");
+        drawPx(17, 24, 4, 4, "#7F1D1D");
+        drawPx(12, 23, 1, 4, "#F59E0B");
+        drawPx(19, 23, 1, 4, "#F59E0B");
+        drawPx(11, 25, 4, 1, "#18181B");
+        drawPx(17, 25, 4, 1, "#18181B");
+      } else if (trId === "para_drape") {
+        drawPx(9, 22, 14, 2, "#3F3F46");
+        drawPx(9, 24, 6, 4, "#3F3F46");
+        drawPx(17, 24, 6, 4, "#3F3F46");
+        drawPx(11, 25, 2, 1, "#71717A");
+        drawPx(19, 25, 2, 1, "#71717A");
       } else {
-        ctx.fillRect(14, 16, 4, 1);
+        // flare_cord
+        drawPx(11, 22, 10, 2, "#5C4033");
+        drawPx(11, 24, 4, 2, "#5C4033");
+        drawPx(17, 24, 4, 2, "#5C4033");
+        drawPx(10, 26, 5, 2, "#4A3228");
+        drawPx(17, 26, 5, 2, "#4A3228");
       }
 
-      const bodyWidth = s.presentation === "masculine" ? 14 : (s.presentation === "feminine" ? 10 : 12);
-      const bodyX = Math.floor((32 - bodyWidth) / 2);
-      ctx.fillStyle = s.outfitColor || "#7A1C24";
-      ctx.fillRect(bodyX, 19, bodyWidth, 8);
+      // 4. Footwear & Boots (rows 27..29)
+      const fwId = s.footwearId || "combat_boot";
+      if (fwId === "combat_boot") {
+        drawPx(10, 27, 5, 2, "#18181B", false);
+        drawPx(17, 27, 5, 2, "#18181B", false);
+        drawPx(12, 27, 2, 1, outfitAccent, false);
+        drawPx(18, 27, 2, 1, outfitAccent, false);
+        drawPx(9, 29, 6, 1, "#09090B", false);
+        drawPx(17, 29, 6, 1, "#09090B", false);
+      } else if (fwId === "chelsea_bt") {
+        drawPx(10, 27, 5, 2, "#451A03", false);
+        drawPx(17, 27, 5, 2, "#451A03", false);
+        drawPx(11, 27, 2, 1, "#78350F", false);
+        drawPx(19, 27, 2, 1, "#78350F", false);
+        drawPx(10, 29, 5, 1, "#1C1917", false);
+        drawPx(17, 29, 5, 1, "#1C1917", false);
+      } else if (fwId === "retro_high") {
+        drawPx(10, 27, 5, 2, "#F8FAFC", false);
+        drawPx(17, 27, 5, 2, "#F8FAFC", false);
+        drawPx(11, 28, 3, 1, outfitPrimary, false);
+        drawPx(18, 28, 3, 1, outfitPrimary, false);
+        drawPx(10, 29, 5, 1, "#F59E0B", false);
+        drawPx(17, 29, 5, 1, "#F59E0B", false);
+      } else if (fwId === "lug_loafer") {
+        drawPx(11, 27, 4, 1, "#F8FAFC", false);
+        drawPx(17, 27, 4, 1, "#F8FAFC", false);
+        drawPx(10, 28, 5, 1, "#1E293B", false);
+        drawPx(17, 28, 5, 1, "#1E293B", false);
+        drawPx(9, 29, 6, 1, "#0F172A", false);
+        drawPx(17, 29, 6, 1, "#0F172A", false);
+      } else if (fwId === "moto_buckle") {
+        drawPx(10, 27, 5, 2, "#27272A", false);
+        drawPx(17, 27, 5, 2, "#27272A", false);
+        drawPx(11, 28, 2, 1, "#FBBF24", false);
+        drawPx(19, 28, 2, 1, "#FBBF24", false);
+        drawPx(9, 29, 6, 1, "#09090B", false);
+        drawPx(17, 29, 6, 1, "#09090B", false);
+      } else {
+        // tabi_avant
+        drawPx(10, 27, 5, 2, "#0F172A", false);
+        drawPx(17, 27, 5, 2, "#0F172A", false);
+        drawPx(10, 29, 2, 1, "#E2E8F0", false);
+        drawPx(13, 29, 2, 1, "#E2E8F0", false);
+        drawPx(17, 29, 2, 1, "#E2E8F0", false);
+        drawPx(20, 29, 2, 1, "#E2E8F0", false);
+      }
 
-      ctx.fillStyle = "#F5F0E6";
-      ctx.fillRect(14, 19, 4, 3);
+      // 5. Upper Torso, Presentation Silhouette & Layered Outerwear (rows 15..22)
+      drawPx(14, 15, 4, 1, skinShadow);
+      const torsoLeft = s.presentation === "masculine" ? 9 : 10;
+      const torsoWidth = s.presentation === "masculine" ? 14 : 12;
 
-      ctx.fillStyle = "#353B3C";
-      ctx.fillRect(11, 27, 4, 3);
-      ctx.fillRect(17, 27, 4, 3);
-      ctx.fillStyle = "#231F1E";
-      ctx.fillRect(11, 30, 4, 2);
-      ctx.fillRect(17, 30, 4, 2);
+      drawPx(torsoLeft, 16, torsoWidth, 6, outfitPrimary);
+      if (s.presentation === "feminine") {
+        drawPx(11, 20, 10, 2, outfitPrimaryDark);
+      }
+      // Sleeves & hands
+      drawPx(torsoLeft - 2, 16, 2, 5, outfitPrimaryDark);
+      drawPx(torsoLeft + torsoWidth, 16, 2, 5, outfitPrimaryDark);
+      drawPx(torsoLeft - 2, 21, 2, 1, skinColor);
+      drawPx(torsoLeft + torsoWidth, 21, 2, 1, skinColor);
+
+      const topId = s.layeredTopId || "rebel_leather";
+      if (topId === "rebel_leather" || topId === "cyber_jacket") {
+        drawPx(13, 16, 6, 6, "#18181B");
+        drawPx(14, 17, 4, 2, outfitAccent);
+        drawPx(11, 16, 2, 4, outfitPrimaryDark);
+        drawPx(19, 16, 2, 4, outfitPrimaryDark);
+        drawPx(11, 17, 1, 1, "#E2E8F0");
+        drawPx(20, 17, 1, 1, "#E2E8F0");
+      } else if (topId === "trench_havana") {
+        drawPx(13, 16, 6, 6, outfitAccent);
+        drawPx(14, 16, 4, 2, skinColor);
+        drawPx(13, 19, 1, 1, outfitPrimaryDark);
+        drawPx(17, 18, 1, 1, outfitPrimaryDark);
+        drawPx(9, 22, 3, 4, outfitPrimary);
+        drawPx(20, 22, 3, 4, outfitPrimary);
+      } else if (topId === "blazer_hoodie") {
+        drawPx(13, 16, 6, 6, outfitAccent);
+        drawPx(12, 15, 8, 1, outfitAccent);
+        drawPx(14, 17, 1, 3, "#FFFFFF");
+        drawPx(17, 17, 1, 3, "#FFFFFF");
+        drawPx(11, 16, 2, 6, outfitPrimaryDark);
+        drawPx(19, 16, 2, 6, outfitPrimaryDark);
+      } else if (topId === "patch_cardi" || topId === "sage_kimono") {
+        drawPx(14, 16, 4, 6, "#F8FAFC");
+        drawPx(10, 16, 4, 6, outfitPrimary);
+        drawPx(18, 16, 4, 6, outfitAccent);
+        drawPx(10, 19, 3, 2, outfitAccent);
+        drawPx(19, 17, 2, 2, outfitPrimary);
+      } else if (topId === "shear_bomber") {
+        drawPx(11, 15, 10, 2, "#FEF3C7");
+        drawPx(14, 17, 4, 5, "#E2E8F0");
+        drawPx(11, 21, 10, 1, "#FEF3C7");
+      } else if (topId === "velvet_mesh") {
+        drawPx(13, 15, 6, 7, "#1E1B4B");
+        drawPx(12, 16, 2, 5, outfitAccent);
+        drawPx(18, 16, 2, 5, outfitAccent);
+      } else if (topId === "field_flannel") {
+        drawPx(13, 16, 6, 6, outfitAccent);
+        drawPx(14, 17, 4, 1, "#1E293B");
+        drawPx(14, 19, 4, 1, "#1E293B");
+        drawPx(10, 18, 2, 2, outfitPrimaryDark);
+        drawPx(20, 18, 2, 2, outfitPrimaryDark);
+      } else if (topId === "denim_turtle" || topId === "scholar_vest") {
+        drawPx(13, 15, 6, 7, "#0F172A");
+        drawPx(12, 16, 2, 6, outfitAccent);
+        drawPx(18, 16, 2, 6, outfitAccent);
+      } else {
+        drawPx(11, 16, 10, 1, outfitAccent);
+        drawPx(14, 17, 1, 3, "#FFFFFF");
+        drawPx(17, 17, 1, 3, "#FFFFFF");
+        drawPx(12, 19, 8, 2, outfitAccent);
+      }
+
+      // 6. Waist Belts, Bags & Body Accessories
+      const acc = s.accessoryId || "crossbody_bag";
+      if (acc === "crossbody_bag") {
+        const leatherBag = "#78350F";
+        const buckle = "#FBBF24";
+        drawPx(11, 16, 2, 1, leatherBag);
+        drawPx(13, 17, 2, 1, leatherBag);
+        drawPx(15, 18, 2, 1, leatherBag);
+        drawPx(16, 19, 1, 1, buckle);
+        drawPx(17, 20, 2, 1, leatherBag);
+        drawPx(19, 21, 4, 3, leatherBag);
+        drawPx(20, 22, 1, 1, buckle);
+      } else if (acc === "silver_chain") {
+        drawPx(13, 16, 6, 1, "#E2E8F0");
+        drawPx(14, 17, 4, 1, "#94A3B8");
+        drawPx(18, 22, 1, 3, "#E2E8F0");
+        drawPx(19, 24, 2, 1, "#E2E8F0");
+      } else if (acc === "studded_belt") {
+        drawPx(11, 22, 10, 1, "#18181B");
+        drawPx(12, 22, 1, 1, "#FBBF24");
+        drawPx(15, 22, 2, 1, "#E2E8F0");
+        drawPx(19, 22, 1, 1, "#FBBF24");
+        drawPx(13, 23, 1, 3, "#18181B");
+      } else if (acc === "silk_scarf") {
+        drawPx(11, 15, 10, 2, outfitAccent);
+        drawPx(18, 17, 2, 3, outfitPrimary);
+      }
+
+      // 7. Head & Face Base (rows 6..14)
+      drawPx(10, 6, 12, 9, skinColor);
+      drawPx(9, 8, 1, 5, skinColor);
+      drawPx(22, 8, 1, 5, skinColor);
+      drawPx(10, 14, 12, 1, skinShadow);
+      if (s.presentation === "masculine") {
+        drawPx(10, 13, 2, 1, skinShadow);
+        drawPx(20, 13, 2, 1, skinShadow);
+      }
+
+      // 8. Eyes Layer (rows 9..11)
+      const expr = s.expressionDefault || "warm_smile";
+      if ((!isMiniPreview && isBlinking) || expr === "serene") {
+        drawPx(11, 10, 3, 1, "#1E293B");
+        drawPx(18, 10, 3, 1, "#1E293B");
+      } else if (expr === "wink") {
+        drawPx(11, 9, 3, 2, eyeColor);
+        drawPx(11, 9, 1, 1, "#FFFFFF");
+        drawPx(18, 10, 3, 1, "#1E293B");
+      } else {
+        const eyeStyle = s.eyeStyleId || "sparkle_round";
+        if (eyeStyle === "cheerful_arc") {
+          drawPx(11, 9, 3, 1, eyeColor);
+          drawPx(11, 10, 1, 1, eyeColor);
+          drawPx(13, 10, 1, 1, eyeColor);
+          drawPx(18, 9, 3, 1, eyeColor);
+          drawPx(18, 10, 1, 1, eyeColor);
+          drawPx(20, 10, 1, 1, eyeColor);
+        } else if (eyeStyle === "calm_focused") {
+          drawPx(11, 9, 3, 1, "#1E293B");
+          drawPx(12, 10, 2, 1, eyeColor);
+          drawPx(18, 9, 3, 1, "#1E293B");
+          drawPx(18, 10, 2, 1, eyeColor);
+        } else {
+          drawPx(11, 9, 3, 2, eyeColor);
+          drawPx(11, 9, 1, 1, "#FFFFFF");
+          drawPx(18, 9, 3, 2, eyeColor);
+          drawPx(18, 9, 1, 1, "#FFFFFF");
+        }
+        if (s.presentation === "feminine") {
+          drawPx(10, 9, 1, 1, "#1E293B");
+          drawPx(21, 9, 1, 1, "#1E293B");
+        }
+      }
+
+      // 9. Face Markings & Statement Eyewear
+      const ff = s.faceFeatureId || "tinted_aviator";
+      if (ff === "tinted_aviator") {
+        drawPx(10, 9, 5, 3, "rgba(225, 29, 72, 0.62)");
+        drawPx(17, 9, 5, 3, "rgba(225, 29, 72, 0.62)");
+        drawPx(10, 8, 12, 1, "#FBBF24");
+        drawPx(15, 9, 2, 1, "#FBBF24");
+      } else if (ff === "round_tortoise") {
+        const frame = "#92400E";
+        drawPx(10, 8, 5, 1, frame);
+        drawPx(17, 8, 5, 1, frame);
+        drawPx(10, 11, 5, 1, frame);
+        drawPx(17, 11, 5, 1, frame);
+        drawPx(15, 9, 2, 1, frame);
+      } else if (ff === "visor_clip") {
+        drawPx(10, 9, 12, 2, "rgba(255, 179, 71, 0.68)");
+        drawPx(15, 9, 2, 1, "#FFFFFF");
+      } else if (ff === "brow_plaster") {
+        drawPx(14, 10, 4, 1, "#FDE68A");
+        drawPx(19, 8, 2, 1, "#1E293B");
+      } else if (ff === "sharp_stubble") {
+        drawPx(11, 13, 10, 1, "rgba(51, 65, 85, 0.55)");
+        drawPx(10, 12, 1, 1, "rgba(51, 65, 85, 0.55)");
+        drawPx(21, 12, 1, 1, "rgba(51, 65, 85, 0.55)");
+      } else if (ff === "soft_blush") {
+        drawPx(10, 11, 2, 1, "rgba(255, 143, 163, 0.6)");
+        drawPx(20, 11, 2, 1, "rgba(255, 143, 163, 0.6)");
+      } else if (ff === "pixel_freckles") {
+        const freckle = "rgba(180, 83, 9, 0.72)";
+        drawPx(10, 11, 1, 1, freckle);
+        drawPx(12, 11, 1, 1, freckle);
+        drawPx(19, 11, 1, 1, freckle);
+        drawPx(21, 11, 1, 1, freckle);
+      } else if (ff === "star_mark") {
+        drawPx(20, 11, 2, 1, "#FFB347");
+        drawPx(10, 11, 2, 1, "rgba(255, 143, 163, 0.45)");
+      }
+
+      // 10. Mouth & Lip-Sync Layer (row 12..13)
+      if (!isMiniPreview && (isSpeaking || s.visualState === "SPEAKING")) {
+        const frameIdx = talkFrame % 3;
+        if (frameIdx === 0) {
+          drawPx(14, 12, 4, 1, "#E11D48");
+        } else if (frameIdx === 1) {
+          drawPx(14, 12, 4, 2, "#9F1239");
+          drawPx(15, 12, 2, 1, "#FDA4AF");
+        } else {
+          drawPx(15, 12, 2, 1, "#E11D48");
+        }
+      } else {
+        if (expr === "determined") {
+          drawPx(14, 12, 4, 1, "#7C2D12");
+        } else if (expr === "joyful") {
+          drawPx(13, 12, 6, 1, "#9F1239");
+          drawPx(14, 13, 4, 1, "#FDA4AF");
+        } else {
+          // Asymmetric confident smirk
+          drawPx(14, 12, 4, 1, "#D97706");
+          drawPx(18, 11, 1, 1, "#D97706");
+        }
+      }
+
+      // 11. Front Hair & Expressive Fringe (rows 3..8)
+      if (hs === "tousled_rebel") {
+        drawPx(9, 4, 14, 3, hairColor);
+        drawPx(8, 5, 2, 2, hairColor);
+        drawPx(22, 5, 2, 2, hairColor);
+        drawPx(11, 3, 3, 1, hairHighlight);
+        drawPx(17, 3, 4, 1, hairHighlight);
+        drawPx(15, 7, 2, 2, hairColor);
+        drawPx(10, 7, 2, 1, hairColor);
+        drawPx(20, 7, 2, 1, hairColor);
+      } else if (hs === "textured_undercut") {
+        drawPx(10, 3, 12, 4, hairColor);
+        drawPx(12, 4, 6, 1, hairHighlight);
+        drawPx(16, 7, 5, 1, hairColor);
+      } else if (hs === "bleached_buzz") {
+        drawPx(10, 4, 12, 3, hairColor);
+        drawPx(11, 4, 10, 1, hairHighlight);
+        drawPx(19, 5, 2, 1, skinColor);
+      } else if (hs === "vintage_shag") {
+        drawPx(9, 4, 14, 3, hairColor);
+        drawPx(11, 4, 8, 1, hairHighlight);
+        drawPx(9, 7, 3, 3, hairColor);
+        drawPx(20, 7, 3, 3, hairColor);
+      } else if (hs === "cyber_swept") {
+        drawPx(9, 4, 14, 3, hairColor);
+        drawPx(10, 7, 9, 1, hairColor);
+        drawPx(11, 5, 6, 1, hairHighlight);
+      } else if (hs === "curly_cloud") {
+        drawPx(8, 3, 16, 4, hairColor);
+        drawPx(11, 3, 10, 1, hairHighlight);
+        drawPx(8, 7, 4, 2, hairColor);
+        drawPx(20, 7, 4, 2, hairColor);
+      } else {
+        drawPx(9, 4, 14, 3, hairColor);
+        drawPx(11, 5, 10, 1, hairHighlight);
+        drawPx(9, 7, 2, 6, hairColor);
+        drawPx(21, 7, 2, 6, hairColor);
+      }
+
+      // 12. Head & Ear Accessories
+      if (acc === "starlight_headphones") {
+        const hpColor = "#94A3B8";
+        drawPx(9, 3, 14, 1, hpColor);
+        drawPx(7, 8, 2, 4, hpColor);
+        drawPx(23, 8, 2, 4, hpColor);
+        drawPx(8, 9, 1, 2, outfitAccent);
+        drawPx(23, 9, 1, 2, outfitAccent);
+      } else if (acc === "ear_cuff_pin") {
+        drawPx(8, 9, 1, 2, "#FBBF24");
+        drawPx(23, 9, 1, 1, "#FBBF24");
+        drawPx(12, 17, 1, 1, "#FBBF24");
+      } else if (acc === "crown_sprout") {
+        drawPx(15, 2, 1, 2, "#34D399");
+        drawPx(13, 1, 2, 1, "#6EE7B7");
+        drawPx(16, 1, 2, 1, "#6EE7B7");
+      }
+    }
+
+    function renderMiniPreviews() {
+      const canvases = document.querySelectorAll("canvas.mini-sprite-canvas[data-override]");
+      canvases.forEach(cv => {
+        try {
+          const override = JSON.parse(cv.getAttribute("data-override"));
+          drawPixelCharacter(cv, { ...state, ...override }, true);
+        } catch (_) {}
+      });
     }
 
     function matchPersonaVoice() {
-      let recommended = "warm_balanced";
-      if (state.expression === "joy" || state.expression === "sparkle") recommended = "bright_expressive";
-      else if (state.expression === "focused") recommended = "crisp_focused";
+      let recommended = "bold_confident";
+      if (state.expressionDefault === "joyful") recommended = "bright_expressive";
+      else if (state.expressionDefault === "determined") recommended = "crisp_focused";
       else if (state.presentation === "masculine") recommended = "deep_resonant";
-      else if (state.presentation === "feminine") recommended = "bright_expressive";
       state.voiceToneId = recommended;
       saveState();
+      previewVoiceTone(recommended);
+    }
+
+    function makeMiniCanvasTag(overrideObj) {
+      const json = JSON.stringify(overrideObj).replace(/"/g, "&quot;");
+      return `<canvas class="mini-sprite-canvas" width="96" height="96" data-override="${json}"></canvas>`;
     }
 
     function renderCategoryPanel() {
@@ -796,19 +1449,21 @@
             </div>
             <div class="section-label">${tr('Ten Tonu', 'Skin Tone')}</div>
             <div class="swatch-row">
-              ${["#F8D9C0", "#F2C6A0", "#D99B72", "#A86B43", "#6E4228"].map(c =>
-                `<div class="color-swatch ${state.skinColor === c ? 'active' : ''}" style="background:${c}" onclick="state.skinColor='${c}';saveState();"></div>`
+              ${SKIN_TONES.map(t =>
+                `<div class="color-swatch ${state.skinToneId === t.id ? 'active' : ''}" title="${tr(t.tr, t.en)}" style="background:${t.hex}" onclick="state.skinToneId='${t.id}';saveState();"></div>`
               ).join("")}
             </div>
-            <div class="section-label">${tr('Silüet Seçimi', 'Body Silhouette')}</div>
+            <div class="section-label">${tr('Silüet Seçimi (Canlı Önizleme)', 'Body Silhouette (Live Preview)')}</div>
             <div class="visual-grid">
               ${[
-                { id: "androgynous", tr: "Dengeli", en: "Balanced" },
-                { id: "feminine", tr: "Zarif", en: "Graceful" },
-                { id: "masculine", tr: "Geniş Omuz", en: "Broad" }
+                { id: "androgynous", tr: "Androjen", en: "Androgynous", subTr: "Editoryal omuz & dengeli", subEn: "Editorial & balanced" },
+                { id: "masculine", tr: "Maskülen", en: "Masculine", subTr: "Geniş omuz & keskin çene", subEn: "Broad shoulders & sharp jaw" },
+                { id: "feminine", tr: "Feminen", en: "Feminine", subTr: "Bel kontrastı & kirpik detayı", subEn: "Sculpted waist & lash wing" }
               ].map(opt => `
                 <div class="grid-item ${state.presentation === opt.id ? 'active' : ''}" onclick="state.presentation='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ presentation: opt.id })}
                   <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
                 </div>
               `).join("")}
             </div>
@@ -831,68 +1486,84 @@
           <div class="panel-card">
             <div class="section-label">${tr('Saç Rengi', 'Hair Color')}</div>
             <div class="swatch-row">
-              ${["#2C222B", "#7A1C24", "#D49B3B", "#4A6B5D", "#6C5CE7"].map(c =>
-                `<div class="color-swatch ${state.hairColor === c ? 'active' : ''}" style="background:${c}" onclick="state.hairColor='${c}';saveState();"></div>`
+              ${HAIR_COLORS.map(c =>
+                `<div class="color-swatch ${state.hairColorId === c.id ? 'active' : ''}" title="${tr(c.tr, c.en)}" style="background:${c.hex}" onclick="state.hairColorId='${c.id}';saveState();"></div>`
               ).join("")}
             </div>
-            <div class="section-label">${tr('Saç Modelleri', 'Hairstyles')}</div>
+            <div class="section-label">${tr('16-Bit Saç Modelleri', '16-Bit Hairstyles')}</div>
             <div class="visual-grid two-col">
-              ${[
-                { id: "messy_crop", tr: "Doğal Kısa", en: "Textured Crop" },
-                { id: "starlight_bob", tr: "Yıldız Bob", en: "Starlight Bob" },
-                { id: "long_wave", tr: "Uzun Dalgalı", en: "Long Waves" },
-                { id: "spiky_punk", tr: "Dinamik Dik", en: "Spiky Crest" }
-              ].map(opt => `
-                <div class="grid-item ${state.hairStyle === opt.id ? 'active' : ''}" onclick="state.hairStyle='${opt.id}';saveState();">
+              ${HAIR_STYLES.map(opt => `
+                <div class="grid-item ${state.hairStyleId === opt.id ? 'active' : ''}" onclick="state.hairStyleId='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ hairStyleId: opt.id })}
                   <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
                 </div>
               `).join("")}
             </div>
           </div>
         `;
-      } else if (cat === "eyewear") {
+      } else if (cat === "face") {
         container.innerHTML = `
           <div class="panel-card">
             <div class="section-label">${tr('Göz Rengi', 'Eye Color')}</div>
             <div class="swatch-row">
-              ${["#4A6B5D", "#5C3A21", "#38BDF8", "#7A1C24", "#2C222B"].map(c =>
-                `<div class="color-swatch ${state.eyeColor === c ? 'active' : ''}" style="background:${c}" onclick="state.eyeColor='${c}';saveState();"></div>`
+              ${EYE_COLORS.map(c =>
+                `<div class="color-swatch ${state.eyeColorId === c.id ? 'active' : ''}" style="background:${c.hex}" onclick="state.eyeColorId='${c.id}';saveState();"></div>`
               ).join("")}
             </div>
-            <div class="section-label">${tr('Gözlük ve Yüz Aksesuarları', 'Eyewear & Accents')}</div>
+            <div class="section-label">${tr('Gözlük ve Yüz Detayları', 'Statement Eyewear & Face Features')}</div>
             <div class="visual-grid two-col">
-              ${[
-                { id: "none", tr: "Gözlüksüz", en: "No Eyewear" },
-                { id: "round_tortoise", tr: "Kemik Çerçeve", en: "Tortoise Round" },
-                { id: "thin_gold", tr: "Altın Çerçeve", en: "Gold Wire" },
-                { id: "cyber_visor", tr: "Piksel Vizör", en: "Pixel Visor" }
-              ].map(opt => `
-                <div class="grid-item ${state.eyewear === opt.id ? 'active' : ''}" onclick="state.eyewear='${opt.id}';saveState();">
+              ${FACE_FEATURES.map(opt => `
+                <div class="grid-item ${state.faceFeatureId === opt.id ? 'active' : ''}" onclick="state.faceFeatureId='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ faceFeatureId: opt.id })}
                   <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
                 </div>
               `).join("")}
             </div>
           </div>
         `;
-      } else if (cat === "outfit") {
+      } else if (cat === "top") {
         container.innerHTML = `
           <div class="panel-card">
-            <div class="section-label">${tr('Kıyafet Renk Paleti', 'Outfit Palette')}</div>
+            <div class="section-label">${tr('Kıyafet Renk Paleti', 'Outfit Color Palette')}</div>
             <div class="swatch-row">
-              ${["#7A1C24", "#3B5249", "#2E4057", "#8C5E3C", "#4A3E5D"].map(c =>
-                `<div class="color-swatch ${state.outfitColor === c ? 'active' : ''}" style="background:${c}" onclick="state.outfitColor='${c}';saveState();"></div>`
+              ${OUTFIT_PALETTES.map(p =>
+                `<div class="color-swatch ${state.colorPaletteId === p.id ? 'active' : ''}" title="${tr(p.tr, p.en)}" style="background:linear-gradient(135deg, ${p.primary} 60%, ${p.accent} 40%)" onclick="state.colorPaletteId='${p.id}';saveState();"></div>`
               ).join("")}
             </div>
-            <div class="section-label">${tr('Kıyafet Kombinleri', 'Curated Outfits')}</div>
+            <div class="section-label">${tr('Katmanlı Üst Giyim & Ceketler', 'Layered Outerwear & Tops')}</div>
             <div class="visual-grid two-col">
-              ${[
-                { id: "scholar_vest", color: "#7A1C24", tr: "Bordo Akademi", en: "Burgundy Scholar" },
-                { id: "sage_kimono", color: "#3B5249", tr: "Adaçayı Stüdyo", en: "Sage Studio" },
-                { id: "trench_havana", color: "#8C5E3C", tr: "Klasik Trençkot", en: "Havana Trench" },
-                { id: "cyber_jacket", color: "#2E4057", tr: "Gece Ceketi", en: "Midnight Jacket" }
-              ].map(opt => `
-                <div class="grid-item ${state.outfitStyle === opt.id ? 'active' : ''}" onclick="state.outfitStyle='${opt.id}';state.outfitColor='${opt.color}';saveState();">
+              ${LAYERED_TOPS.map(opt => `
+                <div class="grid-item ${state.layeredTopId === opt.id ? 'active' : ''}" onclick="state.layeredTopId='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ layeredTopId: opt.id })}
                   <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      } else if (cat === "bottoms") {
+        container.innerHTML = `
+          <div class="panel-card">
+            <div class="section-label">${tr('Pantolon Kesimleri', 'Trousers & Cuts')}</div>
+            <div class="visual-grid two-col">
+              ${TROUSERS_LIST.map(opt => `
+                <div class="grid-item ${state.trousersId === opt.id ? 'active' : ''}" onclick="state.trousersId='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ trousersId: opt.id })}
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
+                </div>
+              `).join("")}
+            </div>
+            <div class="section-label">${tr('Bot ve Ayakkabılar', 'Boots & Footwear')}</div>
+            <div class="visual-grid two-col">
+              ${FOOTWEAR_LIST.map(opt => `
+                <div class="grid-item ${state.footwearId === opt.id ? 'active' : ''}" onclick="state.footwearId='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ footwearId: opt.id })}
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
                 </div>
               `).join("")}
             </div>
@@ -901,22 +1572,31 @@
       } else {
         container.innerHTML = `
           <div class="panel-card">
-            <div class="section-label">${tr('Yüz İfadeleri', 'Expressions')}</div>
+            <div class="section-label">${tr('Çanta, Kemer ve Aksesuarlar', 'Bags, Belts & Jewelry')}</div>
             <div class="visual-grid two-col">
-              ${[
-                { id: "calm", tr: "Sakin ve Dingin", en: "Calm & Grounded" },
-                { id: "joy", tr: "Samimi Tebessüm", en: "Warm Smile" },
-                { id: "focused", tr: "Derin Odak", en: "Deep Focus" },
-                { id: "sparkle", tr: "İlham Verici", en: "Inspired Sparkle" }
-              ].map(opt => `
-                <div class="grid-item ${state.expression === opt.id ? 'active' : ''}" onclick="state.expression='${opt.id}';saveState();">
+              ${ACCESSORIES_LIST.map(opt => `
+                <div class="grid-item ${state.accessoryId === opt.id ? 'active' : ''}" onclick="state.accessoryId='${opt.id}';saveState();">
+                  ${makeMiniCanvasTag({ accessoryId: opt.id })}
                   <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
+                </div>
+              `).join("")}
+            </div>
+            <div class="section-label">${tr('Yüz İfadesi ve Aura', 'Expression & Aura')}</div>
+            <div class="visual-grid two-col">
+              ${EXPRESSIONS_LIST.map(opt => `
+                <div class="grid-item ${state.expressionDefault === opt.id ? 'active' : ''}" onclick="state.expressionDefault='${opt.id}';state.eyeStyleId='${opt.eye}';state.auraEffectId='${opt.aura}';saveState();">
+                  ${makeMiniCanvasTag({ expressionDefault: opt.id, eyeStyleId: opt.eye, auraEffectId: opt.aura })}
+                  <span class="grid-item-title">${tr(opt.tr, opt.en)}</span>
+                  <span class="grid-item-sub">${tr(opt.subTr, opt.subEn)}</span>
                 </div>
               `).join("")}
             </div>
           </div>
         `;
       }
+
+      renderMiniPreviews();
     }
 
     function renderDiscoveryQuiz() {
@@ -950,7 +1630,7 @@
           </button>
           ${step < 4
             ? `<button class="pill-btn primary" onclick="state.discoveryStep=Math.min(4, state.discoveryStep+1);saveState();">${tr('İleri', 'Next')} →</button>`
-            : `<button class="pill-btn primary" onclick="completeDiscoveryQuiz()">✨ ${tr('İdeal Benliği Güncelle', 'Synthesize Ideal Self')}</button>`
+            : `<button class="pill-btn primary" onclick="completeDiscoveryQuiz()">✨ ${tr('Karakteri Güncelle ve Konuş', 'Update Persona & Talk')}</button>`
           }
         </div>
       `;
@@ -962,10 +1642,15 @@
     }
 
     function completeDiscoveryQuiz() {
-      const firstTrait = state.discoveryAnswers[0] || tr("Sakin Mimar", "Calm Architect");
+      const firstTrait = state.discoveryAnswers[0] || tr("Cesur ve Kararlı Dost", "Bold & Decisive Friend");
       state.archetypeTitle = firstTrait;
-      matchPersonaVoice();
-      switchPrimaryTab("character");
+      state.voiceToneId = "bold_confident";
+      switchPrimaryTab("voice");
+      const intro = state.lang === "tr"
+        ? `Tamamdır, profil netleşti. Lafı dolandırmadan soruyorum: "${state.discoveryAnswers[4] || 'hedefin'}" için şu an seni tutan tek bahane ne?`
+        : `Locked in. Let's cut straight to it: what's the one excuse holding you back from "${state.discoveryAnswers[4] || 'your goal'}" right now?`;
+      document.getElementById("companionReplyText").textContent = `"${intro}"`;
+      speakReply(intro);
     }
 
     function switchPrimaryTab(tabName) {
@@ -979,47 +1664,108 @@
       renderAll();
     }
 
+    function selectBestBrowserVoice(langCode) {
+      if (!("speechSynthesis" in window)) return null;
+      const voices = window.speechSynthesis.getVoices() || [];
+      const prefix = langCode.slice(0, 2).toLowerCase();
+      const matching = voices.filter(v => (v.lang || "").toLowerCase().startsWith(prefix));
+      if (!matching.length) return null;
+      // Prefer natural / neural / online high-clarity voices
+      const scored = matching.map(v => {
+        const name = (v.name || "").toLowerCase();
+        let score = 0;
+        if (name.includes("natural") || name.includes("neural") || name.includes("online")) score += 50;
+        if (name.includes("emel") || name.includes("ahmet") || name.includes("yelda") || name.includes("google") || name.includes("siri")) score += 30;
+        if (!v.localService) score += 10;
+        return { v, score };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      return scored[0].v;
+    }
+
     function previewVoiceTone(toneId) {
       const tone = VOICE_TONES.find(t => t.id === toneId) || VOICE_TONES[0];
-      speakReply(
-        state.lang === "tr"
-          ? `Merhaba, ben ${state.companionName}. ${tone.tr} ses tonuyla yanındayım.`
-          : `Hey, I am ${state.companionName}, speaking with a ${tone.en} voice tone.`
-      );
+      const sample = state.lang === "tr"
+        ? `Ben ${state.companionName}. ${tone.tr} ses tonumla lafı dolandırmadan, net ve kararlı şekilde yanındayım. Hazırsan başlayalım.`
+        : `I'm ${state.companionName}. Speaking with a ${tone.en} voice—direct, fearless, and ready when you are.`;
+      speakReply(sample);
     }
 
     function speakReply(text) {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
+
       const tone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
-      utter.lang = state.lang === "tr" ? "tr-TR" : "en-US";
-      utter.pitch = tone.pitch;
-      utter.rate = tone.rate;
-      utter.onstart = () => {
-        isSpeaking = true;
-        state.visualState = "SPEAKING";
-        drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state);
-        updateVoiceControlsUI();
-      };
-      utter.onend = () => {
-        isSpeaking = false;
-        state.visualState = "IDLE";
-        drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state);
-        updateVoiceControlsUI();
-      };
-      window.speechSynthesis.speak(utter);
+      const speedMult = typeof state.voiceSpeedMultiplier === "number" ? state.voiceSpeedMultiplier : 1.10;
+      // Keep bold & confident tone punchy and never stretched
+      const rawRate = tone.rate * (speedMult / 1.05);
+      const effectiveRate = Math.max(0.80, Math.min(1.60, Number(rawRate.toFixed(2))));
+      const targetLang = state.lang === "tr" ? "tr-TR" : "en-US";
+      const chosenVoice = selectBestBrowserVoice(targetLang);
+
+      // Split into crisp clauses so TTS never sounds monotonous or cuts off
+      const clauses = text
+        .split(/(?<=[.!?…])\s+/)
+        .map(c => c.trim())
+        .filter(Boolean);
+
+      if (!clauses.length) return;
+
+      isSpeaking = true;
+      state.visualState = "SPEAKING";
+      updateVoiceControlsUI();
+
+      clauses.forEach((clause, idx) => {
+        const utter = new SpeechSynthesisUtterance(clause);
+        utter.lang = targetLang;
+        if (chosenVoice) utter.voice = chosenVoice;
+        utter.pitch = tone.pitch;
+        utter.rate = effectiveRate;
+
+        if (idx === 0) {
+          utter.onstart = () => {
+            isSpeaking = true;
+            state.visualState = "SPEAKING";
+            updateVoiceControlsUI();
+          };
+        }
+
+        if (idx === clauses.length - 1) {
+          utter.onend = () => {
+            isSpeaking = false;
+            state.visualState = "IDLE";
+            updateVoiceControlsUI();
+          };
+          utter.onerror = () => {
+            isSpeaking = false;
+            state.visualState = "IDLE";
+            updateVoiceControlsUI();
+          };
+        }
+
+        window.speechSynthesis.speak(utter);
+      });
     }
 
     function handlePrimaryMicTap() {
       if (isSpeaking) {
         window.speechSynthesis.cancel();
         isSpeaking = false;
+        state.visualState = "IDLE";
         startBrowserSpeechRecognition();
         return;
       }
       if (liveTranscriptBuffer.trim().length > 0) {
         commitSpokenTurn();
+        return;
+      }
+      if (isListening) {
+        if (recognitionInstance) {
+          try { recognitionInstance.stop(); } catch (_) {}
+        }
+        isListening = false;
+        state.visualState = "IDLE";
+        updateVoiceControlsUI();
         return;
       }
       startBrowserSpeechRecognition();
@@ -1028,12 +1774,13 @@
     function startBrowserSpeechRecognition() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRec) {
-        document.getElementById("chatTextInput").focus();
+        const input = document.getElementById("chatTextInput");
+        input.focus();
         return;
       }
       try {
         if (recognitionInstance) {
-          recognitionInstance.abort();
+          try { recognitionInstance.abort(); } catch (_) {}
         }
         const rec = new SpeechRec();
         recognitionInstance = rec;
@@ -1043,6 +1790,7 @@
 
         rec.onstart = () => {
           isListening = true;
+          state.visualState = "LISTENING";
           updateVoiceControlsUI();
         };
 
@@ -1055,16 +1803,27 @@
           if (cleaned) {
             liveTranscriptBuffer = cleaned;
             updateVoiceControlsUI();
+            if (autoSendSilenceTimer) clearTimeout(autoSendSilenceTimer);
+            // Hybrid flow: automatically send after 1.65s natural pause, or user can tap immediately
+            autoSendSilenceTimer = setTimeout(() => {
+              if (isListening && liveTranscriptBuffer.trim().length > 0) {
+                commitSpokenTurn();
+              }
+            }, 1650);
           }
         };
 
         rec.onerror = () => {
           isListening = false;
+          state.visualState = "IDLE";
           updateVoiceControlsUI();
         };
 
         rec.onend = () => {
           isListening = false;
+          if (state.visualState === "LISTENING") {
+            state.visualState = "IDLE";
+          }
           updateVoiceControlsUI();
         };
 
@@ -1073,6 +1832,10 @@
     }
 
     function commitSpokenTurn() {
+      if (autoSendSilenceTimer) {
+        clearTimeout(autoSendSilenceTimer);
+        autoSendSilenceTimer = null;
+      }
       const text = liveTranscriptBuffer.trim();
       if (!text) return;
       if (recognitionInstance) {
@@ -1084,10 +1847,15 @@
     }
 
     function editPartialTranscript() {
+      if (autoSendSilenceTimer) {
+        clearTimeout(autoSendSilenceTimer);
+        autoSendSilenceTimer = null;
+      }
       if (recognitionInstance) {
         try { recognitionInstance.stop(); } catch (_) {}
       }
       isListening = false;
+      state.visualState = "IDLE";
       const input = document.getElementById("chatTextInput");
       input.value = liveTranscriptBuffer;
       input.focus();
@@ -1095,14 +1863,18 @@
     }
 
     function clearPartialTranscript() {
+      if (autoSendSilenceTimer) {
+        clearTimeout(autoSendSilenceTimer);
+        autoSendSilenceTimer = null;
+      }
       liveTranscriptBuffer = "";
       updateVoiceControlsUI();
       startBrowserSpeechRecognition();
     }
 
-    function sendTypedTurn() {
+    function sendTypedTurn(presetText) {
       const input = document.getElementById("chatTextInput");
-      const text = (input.value || "").trim();
+      const text = (presetText || input.value || "").trim();
       if (!text) return;
       input.value = "";
       liveTranscriptBuffer = "";
@@ -1111,46 +1883,280 @@
 
     function processUserMessage(userText) {
       const transcriptEl = document.getElementById("liveTranscriptText");
-      transcriptEl.textContent = `"${userText}"`;
+      transcriptEl.textContent = `Sen: "${userText}"`;
       transcriptEl.classList.remove("hidden");
 
-      const reply = generateCompanionReply(userText);
+      const reply = generateBoldCompanionReply(userText);
+      conversationHistory.push({ user: userText, companion: reply });
+      if (conversationHistory.length > 20) conversationHistory.shift();
+
       document.getElementById("companionReplyText").textContent = `"${reply}"`;
       updateVoiceControlsUI();
       speakReply(reply);
     }
 
-    function generateCompanionReply(userText) {
-      const lower = userText.toLowerCase();
-      if (state.lang === "tr") {
-        if (lower.includes("ertele") || lower.includes("odak") || lower.includes("karışık")) {
-          return `Seni duyuyorum. Her şeyi aynı anda çözmek zorunda değiliz; şu an önündeki tek bir küçük adımı seçelim, gerisini birlikte sadeleştiririz.`;
+    /**
+     * Extracts a meaningful topic phrase from the user's utterance so the companion
+     * references what the user actually talked about instead of sounding generic.
+     */
+    function extractKeyPhrase(userText) {
+      const cleaned = userText
+        .replace(/[?!.,;:"']/g, " ")
+        .trim();
+      const stopWords = new Set([
+        "ben", "sen", "bir", "bu", "şu", "o", "ve", "ile", "için", "ama", "fakat", "çok",
+        "biraz", "gibi", "kadar", "daha", "en", "mi", "mı", "mu", "mü", "ne", "nasıl",
+        "neden", "niye", "şey", "var", "yok", "oldu", "oluyor", "yapıyorum", "ediyorum",
+        "acaba", "sence", "bana", "beni", "benim", "senin", "selam", "merhaba", "hey", "ya"
+      ]);
+      const words = cleaned.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
+      if (words.length === 0) return "";
+      return words.slice(0, 3).join(" ");
+    }
+
+    function pickNonRepeating(pool, keyPrefix) {
+      for (let i = 0; i < pool.length; i++) {
+        const key = `${keyPrefix}_${i}`;
+        if (!usedReplyIndices.has(key)) {
+          usedReplyIndices.add(key);
+          return pool[i];
         }
-        return `Söylediğin şey çok değerli. ${state.archetypeTitle} bakış açısıyla baktığımızda, bugün seni ideal benliğine en çok yaklaştıracak tek hamle ne olurdu?`;
-      } else {
-        return `I hear you clearly. Looking at this through your ${state.archetypeTitle} lens, what is one small, intentional step we can take right now?`;
       }
+      // Reset keys for this category once all have been used
+      Array.from(usedReplyIndices).forEach(k => {
+        if (k.startsWith(keyPrefix)) usedReplyIndices.delete(k);
+      });
+      usedReplyIndices.add(`${keyPrefix}_0`);
+      return pool[0];
+    }
+
+    /**
+     * Bold, Confident, Self-Assured, No-Nonsense Challenging Friend Dialogue Engine
+     * ("Net, kararlı, lafı dolandırmayan ve meydan okuyan dost")
+     * NEVER outputs canned filler like "Söylediğin şey çok değerli...".
+     */
+    function generateBoldCompanionReply(userText) {
+      const raw = userText.trim();
+      const lower = " " + raw.toLowerCase() + " ";
+      const topic = extractKeyPhrase(raw);
+      const userGoal = (state.discoveryAnswers && state.discoveryAnswers[4]) || "";
+
+      if (state.lang !== "tr") {
+        if (/\b(hi|hello|hey|yo|sup|good morning|good evening)\b/.test(lower)) {
+          return pickNonRepeating([
+            `I'm right here, sharp and ready. Skip the small talk—what's the real move we're making today?`,
+            `Hey! Energy is high. Tell me straight: what's the one thing on your plate you've been avoiding?`,
+            `Good to hear your voice. No warmup needed—what are we conquering right now?`
+          ], "en_greet");
+        }
+        if (/\b(procrastinat|delay|later|lazy|stuck|hesitat|scared|afraid|doubt)\b/.test(lower)) {
+          return pickNonRepeating([
+            `Stop waiting to feel ready—readiness is an excuse. Give yourself 10 minutes right now and attack ${topic || "the hardest part"} head-on.`,
+            `Let's be real: you don't lack time, you're just over-negotiating with yourself. Open it up and ship the first draft right now.`,
+            `Doubt only wins while you're standing still. Make a bold call on ${topic || "this"} in the next 60 seconds.`
+          ], "en_hesitate");
+        }
+        return pickNonRepeating([
+          `Let's cut straight to the core of "${topic || raw}". You already know the bold move here—stop second-guessing and execute it now.`,
+          `Here's my honest take on ${topic || "what you just said"}: playing it safe won't get you anywhere. Commit 100% and make the call.`,
+          `Don't overcomplicate ${topic || "it"}. Strip away the noise, trust your instinct, and take the lead right now.`
+        ], "en_general");
+      }
+
+      // 1. Ses testi / kısa mikrofon kontrolü
+      if (/\b(sesim geliyor mu|beni duyuyor musun|alo|deneme|test|duyabiliyor musun|oradasın|orda mısın)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Sesin gayet net ve güçlü geliyor! Mikrofon sağlam, bahane yok; hadi asıl konuya gir, bugün neyi deviriyoruz?`,
+          `Seni kristal netliğinde duyuyorum dostum. Ses kontrolü bittiğine göre doğrudan sadede gelelim: aklındaki ilk hamle ne?`,
+          `Buradayım ve seni tam netlikle duyuyorum. Lafı uzatmadan söyle bakalım, gündemimizde ne var?`
+        ], "tr_mic");
+      }
+
+      // 2. Selamlaşma & Hal-Hatır
+      if (/\b(selam|merhaba|naber|nasılsın|ne haber|günaydın|iyi akşamlar|hey|selamlar)\b/.test(lower) && raw.split(/\s+/).length <= 5) {
+        return pickNonRepeating([
+          `Selam! Enerjim tam, zihnim berrak. Lafı dolandırmadan soracağım: bugün gerçekten hakkını vermek istediğin tek iş hangisi?`,
+          `Hoş geldin dostum, bomba gibiyim. Isınma turlarını geçelim; şu an masanda bekleyen en kritik mesele ne?`,
+          `Selam! Ben hazırım, peki sen bugün konfor alanından çıkıp o ertelediğin adımı atmaya hazır mısın?`,
+          `Harikayım ve doğrudan aksiyon modundayım. Söyle bakalım, bugün neyi bahane etmeyi bırakıp sonuca bağlıyoruz?`
+        ], "tr_greet");
+      }
+
+      // 3. Şikayet / "Hep aynı şeyi söylüyorsun" / Bot eleştirisi
+      if (/\b(aynı şey|tekrar|papağan|sıkıldım|sinir bozucu|saçma|robot|düzgün konuş|değiştir)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Haklısın, o sıkıcı kalıp cümleleri çöpe attım. Artık karşında lafı eğip bükmeyen, doğrudan konuştuğun konuya giren net bir dost var. Şimdi beni istediğin yerden sına!`,
+          `Kalıp cevaplar bitti dostum, dobra moddayız. Ne söylersen doğrudan ona yanıt vereceğim; hadi aklındaki en zor konuyu masaya yatır.`,
+          `Net konuşalım: politik veya tekrarlayan cümleler benim tarzım değil. Şimdi filtresiz devam ediyoruz, söyle bakalım ne düşünüyorsun?`
+        ], "tr_meta");
+      }
+
+      // 4. Erteleme, Üşenme, Kararsızlık, Bahane
+      if (/\b(ertele|üşen|başlayamıyorum|kararsız|bilmiyorum|yapamıyorum|zor geliyor|tıkandım|odaklanamıyorum|motivasyon)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Açık konuşalım: şu an ihtiyacın olan şey motivasyon değil, disiplin. ${topic ? `"${topic}" konusunda` : "Bu konuda"} hazır hissetmeyi bekleme, hemen şimdi 15 dakikalık ilk adımı başlat.`,
+          `Kendini kandırmayı bırak dostum; kararsızlık dediğin şey aslında hata yapma korkusu. En kusurlu haliyle bile olsa şimdi başla, yolda mükemmelleştiririz.`,
+          `Zihnin sana yine konforlu bahaneler üretiyor. ${topic ? `"${topic}" işini` : "Önündeki işi"} gözünde büyütmeyi kes, sadece ilk parçasını şu an bitir ve bana haber ver!`,
+          `Odaklanamamanın sebebi aynı anda beş şeyi düşünmen. Diğer dördünü kapat, sadece en zor olanın üstüne git; sen bundan çok daha güçlüsün.`
+        ], "tr_procrastinate");
+      }
+
+      // 5. Korku, Kaygı, Stres, Yorgunluk, Aşırı Düşünme (Overthinking)
+      if (/\b(kork|endişe|stres|yoruldum|bıktım|kafam karışık|bunal|yetişmiyor|panik|çekiniyorum|ya olmazsa)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Derin bir nefes al ve şu "ya olmazsa" senaryolarını hemen çöpe at. ${topic ? `"${topic}"` : "Bu durum"} senin kontrol edebileceğinden büyük değil; önce elindeki ilk somut adımı at, gerisi kendiliğinden açılacak.`,
+          `Kafandaki gürültüyü sustur dostum. Fazla düşünmek eylemin düşmanıdır; şu an kontrol edebildiğin tek şeye odaklan, sırtın yere gelmez.`,
+          `Yorulmuş olman pes edeceğin anlamına gelmez. Kısa bir mola ver, omuzlarını dikleştir ve ${topic ? `"${topic}" meselesine` : "meseleye"} çok daha soğukkanlı bir lider gibi geri dön.`,
+          `Çekinilecek hiçbir şey yok! En kötü ne olabilir ki? Deneyip yanılmak, kenarda bekleyip "keşke" demekten yüz kat daha onurludur.`
+        ], "tr_stress");
+      }
+
+      // 6. İş, Proje, Kodlama, Uygulama, Kariyer, Para, Hedef
+      if (/\b(proje|iş|uygulama|kod|deploy|vercel|kariyer|para|hedef|çalışma|sunum|toplantı|müşteri|sınav|okul)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Mesele "${topic || "bu proje"}" ise yarım yamalak iş yapma, doğrudan en kritik parçayı tamamla. Bugün masadan kalkmadan önce hangi somut çıktıyı bitiriyorsun?`,
+          `"${topic || "Hedefin"}" konusunda standartların yüksek olsun. Detaylarda boğulmak yerine doğrudan çalışan, sonuç üreten çekirdek kısmı bitir; hız her şeydir.`,
+          `Güzel hedef! Ama sadece konuşmak yetmez; "${topic || "bu iş"}" için önümüzdeki bir saat içinde atacağın en cesur ve ölçülebilir adım ne?`,
+          `Bak, "${topic || "bu alanda"}" fark yaratmak istiyorsan herkesin çekindiği o zor kısmı ilk sen çözmelisin. Şimdi kolları sıva, arkandayım.`
+        ], "tr_work");
+      }
+
+      // 7. İlişkiler, İnsanlar, Sosyal Ortam, Tartışma
+      if (/\b(arkadaş|sevgili|ilişki|insanlar|aile|tartış|kırıldım|yalnız|güven|sınır)\b/.test(lower)) {
+        return pickNonRepeating([
+          `İnsan ilişkilerinde en büyük güç netliktir dostum. "${topic || "Bu durumda"}" içinden geçeni ima etmek yerine doğrudan ve özgüvenle söyle; sınırlarını ancak sen çizebilirsin.`,
+          `Başkalarının ne düşündüğüne göre yaşarsan kendi rotanı kaybedersin. "${topic || "Bu konuda"}" kendi duruşunu bozma, net ol ve geri adım atma.`,
+          `Kimseye kendini kanıtlamak zorunda değilsin. Değerini bilen yanındadır, bilmeyene de açık kapı bırakmaya gerek yok. Sen kendi merkezinde kal.`
+        ], "tr_social");
+      }
+
+      // 8. Doğrudan Soru / Fikir İsteme ("Ne yapmalıyım?", "Sence nasıl?", "Ne dersin?")
+      if (raw.includes("?") || /\b(ne yapmalı|sence|ne dersin|nasıl yap|öneri|tavsiye|fikrin ne|hangisi)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Sana net cevabımı vereyim: "${topic || raw}" konusunda güvenli seçeneği değil, seni biraz terletecek ama büyütecek olan seçeneği seç. İçgüdün zaten cevabı biliyor, hemen uygula.`,
+          `Lafı dolandırmayacağım: üzerinde 5 dakikadan fazla düşündüğün her karar ertelemeye dönüşür. "${topic || "Bu konu"}" için şimdi cesur olan yolu seç ve arkana bakma.`,
+          `Benim tavsiyem net: önce en zor görünen engelin üstüne yürü. "${topic || "Burada"}" ilk adımı sen atarsan tüm kontrol senin eline geçer.`,
+          `Bana soruyorsan yarım karar verme! Ya tam girip hakkını ver ya da vakit kaybetmeden listeden çıkar. Senin yerinde olsam hemen şimdi başlardım.`
+        ], "tr_question");
+      }
+
+      // 9. Olumlu Haber / Başarı / "Yaptım", "Bitti", "Harika"
+      if (/\b(yaptım|bitirdim|başardım|hallettim|harika|süper|tamamlandı|çözdüm|kazandım)\b/.test(lower)) {
+        return pickNonRepeating([
+          `İşte beklediğim hamle bu! "${topic || "Bunu"}" net şekilde bitirmen kaliteni gösteriyor. Şimdi hız kesmeden sıradaki hedefi söyle, ivmeyi kaybetmeyelim!`,
+          `Helal olsun dostum, laf değil icraat üretmişsin! Bu özgüveni koru; şimdi çıtayı bir kademe daha yukarı taşıma vakti.`,
+          `Tam tahmin ettiğim gibi, üstüne gidince nasıl da çözülüyor! Şimdi bu rüzgarı arkana al ve ikinci hamleni yap.`
+        ], "tr_win");
+      }
+
+      // 10. Felsefe, Hayat, Anlam, Özgüven, Karakter
+      if (/\b(hayat|anlam|özgüven|cesaret|güç|karakter|gelecek|vizyon|özgürlük|disiplin)\b/.test(lower)) {
+        return pickNonRepeating([
+          `Özgüven aynanın karşısında olumlama yaparak gelmez dostum; zor işlerin altından kalktıkça inşa edilir. "${topic || "Hayatta"}" kendi sözünü kendine tuttuğun an yenilmez olursun.`,
+          `Cesaret korkmamak değildir, sesin titrese bile o adımı atmaktır. "${topic || "Vizyonun"}" için bugün konforunu bozacak bir şey yap.`,
+          `Karakter, kimse bakmıyorken ne yaptığınla ölçülür. Bahaneleri elinin tersiyle ittiğin gün ideal benliğin zaten sensin.`
+        ], "tr_philosophy");
+      }
+
+      // 11. Kullanıcının spesifik cümlesine doğrudan atıf yapan dinamik ve cesur yanıtlar (ASLA sabit tek cümle değil)
+      const dynamicPool = [
+        `"${topic || raw}" konusunu masaya yatırman güzel ama sadece konuşmakla yetinmeyelim. Şu an bu konuda seni en çok zorlayan noktayı söyle, doğrudan oradan başlayalım.`,
+        `Bak dostum, "${topic || raw}" meselesinde topu taca atma. İçten içe ne yapman gerektiğini çok iyi biliyorsun; seni tutan şeyi şimdi kırıp geçelim.`,
+        `Net konuşacağım: "${topic || raw}" için mükemmel zamanı beklersen o zaman hiç gelmeyecek. Elindeki imkanlarla tam şu an ilk hamleyi yap!`,
+        `"${topic || raw}" dedin ya, işte tam orada cesur bir karar gerekiyor. Yarım yamalak değil, tam kararlılıkla üstüne gitmeye var mısın?`,
+        `Güzel nokta! "${topic || raw}" konusunda çoğu insan çekinir ama sen geri adım atacak biri değilsin. Hadi bunu somut bir eyleme dök, ilk adımın ne oluyor?`,
+        `Lafı hiç eğip bükmeyelim: "${topic || raw}" senin için gerçekten önemliyse, bugün diğer bütün dikkat dağıtıcıları kapatıp buna odaklanacaksın. Anlaştık mı?`,
+        `"${topic || raw}" üzerinde kafa yorman harika, şimdi bunu sonuca çevirme zamanı. Bana önümüzdeki 30 dakikada yapacağın tek net hamleyi söyle!`
+      ];
+      return pickNonRepeating(dynamicPool, "tr_dynamic");
+    }
+
+    function renderQuickPrompts() {
+      const row = document.getElementById("quickPromptsRow");
+      if (!row) return;
+      const prompts = state.lang === "tr"
+        ? [
+            "Projemi sürekli erteliyorum, beni silkele!",
+            "Bugün odaklanmakta zorlanıyorum, ne yapayım?",
+            "Kararsız kaldım, nasıl cesur adım atarım?",
+            "Özgüvenimi nasıl daha net ortaya koyarım?"
+          ]
+        : [
+            "I keep procrastinating on my project—challenge me!",
+            "Help me cut through overthinking right now.",
+            "How do I make a bold decision today?"
+          ];
+      row.innerHTML = prompts.map(p => `
+        <button class="mini-chip" onclick="sendTypedTurn('${p.replace(/'/g, "\\'")}')">⚡ ${p}</button>
+      `).join("");
     }
 
     function updateVoiceControlsUI() {
       const transcriptEl = document.getElementById("liveTranscriptText");
       const partialRow = document.getElementById("partialActionRow");
       const micBtn = document.getElementById("primaryMicBtn");
+      const statusPill = document.getElementById("voiceStatusPill");
 
       if (liveTranscriptBuffer.trim().length > 0) {
-        transcriptEl.textContent = `"${liveTranscriptBuffer}"`;
+        transcriptEl.textContent = `${tr("Algılanan", "Captured")}: "${liveTranscriptBuffer}"`;
         transcriptEl.classList.remove("hidden");
         partialRow.classList.remove("hidden");
-        micBtn.textContent = tr("➤ Dokun ve Gönder", "➤ Tap to Send");
+        micBtn.textContent = tr("➤ Dokun ve Hemen Gönder", "➤ Tap to Send Now");
+        micBtn.classList.add("listening");
+        if (statusPill) statusPill.textContent = tr("SES ALGILANDI • OTOMATİK VEYA DOKUNARAK GÖNDER", "SPEECH CAPTURED • AUTO OR TAP TO SEND");
       } else {
         partialRow.classList.add("hidden");
         if (isSpeaking) {
-          micBtn.textContent = tr("⏹ Sözünü Kes", "⏹ Interrupt");
+          micBtn.textContent = tr("⏹ Sözünü Kes ve Konuş", "⏹ Interrupt & Speak");
+          micBtn.classList.remove("listening");
+          if (statusPill) statusPill.textContent = tr("KARAKTER KONUŞUYOR • CESUR VE NET TON", "COMPANION SPEAKING • BOLD & CONFIDENT");
         } else if (isListening) {
-          micBtn.textContent = tr("🎙️ Dinleniyor...", "🎙️ Listening...");
+          micBtn.textContent = tr("🎙️ Dinleniyor... (Konuşun)", "🎙️ Listening... (Speak now)");
+          micBtn.classList.add("listening");
+          if (statusPill) statusPill.textContent = tr("CANLI MİKROFON AÇIK • SENİ DİNLİYORUM", "LIVE MIC ACTIVE • LISTENING");
         } else {
           micBtn.textContent = tr("🎙️ Konuş", "🎙️ Tap to Speak");
+          micBtn.classList.remove("listening");
+          if (statusPill) statusPill.textContent = tr("CANLI SESLİ SOHBET • NET VE KARARLI MOD", "LIVE VOICE CHAT • BOLD & DECISIVE MODE");
         }
+      }
+    }
+
+    function setVoiceSpeedMultiplier(mult, announce = false) {
+      const clamped = Math.max(0.85, Math.min(1.50, Math.round(mult * 20) / 20));
+      state.voiceSpeedMultiplier = clamped;
+      saveState();
+      if (announce) {
+        const msg = state.lang === "tr"
+          ? `Konuşma hızı ${clamped.toFixed(2)} çarpana ayarlandı. Net ve kararlı tempodayım.`
+          : `Voice speed set to ${clamped.toFixed(2)}x. Crisp, punchy, and ready.`;
+        speakReply(msg);
+      }
+    }
+
+    function renderVoiceSpeedControls() {
+      const mult = typeof state.voiceSpeedMultiplier === "number" ? state.voiceSpeedMultiplier : 1.10;
+      const titleEl = document.getElementById("voiceSpeedTitleLabel");
+      const badgeEl = document.getElementById("voiceSpeedActiveBadge");
+      const chipsRow = document.getElementById("voiceSpeedChipsRow");
+      const sliderEl = document.getElementById("voiceSpeedSlider");
+
+      if (titleEl) titleEl.textContent = tr("⚡ Konuşma Hızı Çarpanı", "⚡ Voice Speed Multiplier");
+      const nearest = VOICE_SPEED_PRESETS.reduce((best, cur) =>
+        Math.abs(cur.mult - mult) < Math.abs(best.mult - mult) ? cur : best
+      , VOICE_SPEED_PRESETS[2]);
+
+      if (badgeEl) {
+        badgeEl.textContent = `${mult.toFixed(2).replace(/0$/, "")}x · ${tr(nearest.tr, nearest.en)}`;
+      }
+      if (sliderEl) {
+        sliderEl.value = String(mult);
+      }
+      if (chipsRow) {
+        chipsRow.innerHTML = VOICE_SPEED_PRESETS.map(p => {
+          const isActive = Math.abs(p.mult - mult) < 0.03;
+          return `<button class="mini-chip ${isActive ? 'active' : ''}" onclick="setVoiceSpeedMultiplier(${p.mult}, true)">${p.label} ${tr(p.tr, p.en)}</button>`;
+        }).join("");
       }
     }
 
@@ -1165,7 +2171,8 @@
       document.getElementById("navDiscoveryLabel").textContent = tr("Keşif (5 Soru)", "Discovery (5)");
 
       const activeTone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
-      document.getElementById("activeVoiceBadge").textContent = `🔊 ${tr(activeTone.tr, activeTone.en)}`;
+      const mult = typeof state.voiceSpeedMultiplier === "number" ? state.voiceSpeedMultiplier : 1.10;
+      document.getElementById("activeVoiceBadge").textContent = `🔊 ${tr(activeTone.tr, activeTone.en)} (${mult.toFixed(2).replace(/0$/, "")}x)`;
 
       const states = ["IDLE", "LISTENING", "SPEAKING", "REACTING"];
       document.getElementById("statePillsRow").innerHTML = states.map(st => `
@@ -1178,13 +2185,48 @@
         </button>
       `).join("");
 
-      drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state);
+      drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state, false);
       renderCategoryPanel();
       renderDiscoveryQuiz();
+      renderQuickPrompts();
+      renderVoiceSpeedControls();
       updateVoiceControlsUI();
     }
 
+    // 60fps animation loop for breathing bob, periodic eye blink, waveform bars, and speaking lip-sync
+    function startAnimationLoop() {
+      setInterval(() => {
+        animTick++;
+        if (animTick % 28 === 0) {
+          isBlinking = true;
+          setTimeout(() => { isBlinking = false; }, 150);
+        }
+        if (isSpeaking || state.visualState === "SPEAKING") {
+          talkFrame = (talkFrame + 1) % 3;
+        }
+        drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state, false);
+
+        // Animate waveform bars when listening or speaking
+        const bars = document.querySelectorAll("#waveformBars .wave-bar");
+        bars.forEach((bar, i) => {
+          if (isSpeaking || isListening || state.visualState === "SPEAKING" || state.visualState === "LISTENING") {
+            const h = 8 + Math.round(Math.abs(Math.sin((animTick + i * 2) * 0.45)) * 24);
+            bar.style.height = `${h}px`;
+          } else {
+            bar.style.height = "8px";
+          }
+        });
+      }, 120);
+    }
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        selectBestBrowserVoice(state.lang === "tr" ? "tr-TR" : "en-US");
+      };
+    }
+
     renderAll();
+    startAnimationLoop();
   </script>
 </body>
 </html>

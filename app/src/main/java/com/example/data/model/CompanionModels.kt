@@ -322,7 +322,7 @@ enum class CompanionVoiceTone(
             return entries.minByOrNull { tone ->
                 val pitchDiff = kotlin.math.abs(tone.pitch - pitch)
                 val rateDiff = kotlin.math.abs(tone.speechRate - speechRate)
-                pitchDiff * 1.4f + rateDiff
+                pitchDiff * 3.8f + rateDiff * 0.25f
             } ?: WARM_BALANCED
         }
 
@@ -342,9 +342,30 @@ enum class CompanionVoiceTone(
     }
 }
 
+enum class VoiceSpeedMultiplier(
+    val multiplier: Float,
+    val label: String,
+    val trSubtitle: String,
+    val enSubtitle: String
+) {
+    RELAXED_095(0.95f, "0.95x", "Sakin", "Relaxed"),
+    NATURAL_100(1.00f, "1.0x", "Doğal", "Natural"),
+    PUNCHY_110(1.10f, "1.1x", "Net & Canlı", "Punchy"),
+    BOLD_120(1.20f, "1.2x", "Cesur & Hızlı", "Bold Pace"),
+    RAPID_135(1.35f, "1.35x", "Dinamik", "Rapid");
+
+    companion object {
+        fun fromRate(rate: Float): VoiceSpeedMultiplier {
+            return entries.minByOrNull { preset ->
+                kotlin.math.abs(preset.multiplier - rate)
+            } ?: PUNCHY_110
+        }
+    }
+}
+
 data class VoicePreferences(
     val pitch: Float = 1.0f,
-    val speechRate: Float = 1.0f,
+    val speechRate: Float = 1.10f,
     val handsFreeAutoListen: Boolean = true,
     val preferredAudioRoute: AudioRoutePreference = AudioRoutePreference.SPEAKER
 ) {
@@ -354,9 +375,16 @@ data class VoicePreferences(
     val voiceTone: CompanionVoiceTone
         get() = CompanionVoiceTone.fromPitchAndRate(pitch, speechRate)
 
+    val speedMultiplierPreset: VoiceSpeedMultiplier
+        get() = VoiceSpeedMultiplier.fromRate(speechRate)
+
     fun withVoiceTone(tone: CompanionVoiceTone): VoicePreferences = copy(
         pitch = tone.pitch,
         speechRate = tone.speechRate
+    )
+
+    fun withSpeedMultiplier(multiplier: Float): VoicePreferences = copy(
+        speechRate = multiplier.coerceIn(0.80f, 1.50f)
     )
 }
 
