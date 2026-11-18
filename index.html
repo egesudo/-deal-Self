@@ -2184,37 +2184,255 @@
       processUserMessage(text);
     }
 
-    function processUserMessage(userText) {
-      const transcriptEl = document.getElementById("liveTranscriptText");
-      transcriptEl.textContent = `Sen: "${userText}"`;
-      transcriptEl.classList.remove("hidden");
+    const dialogueContext = {
+      activeDomain: "general",
+      activeTopicNoun: "",
+      lastIntent: "",
+      lastUserMessage: "",
+      lastCompanionReply: "",
+      turnCount: 0
+    };
 
-      const reply = generateBoldCompanionReply(userText);
-      conversationHistory.push({ user: userText, companion: reply });
+    /**
+     * Normalizes common Web Speech API / STT phonetic slips in Turkish & English
+     * (e.g. "Sen de önerirsin" -> "Sen ne önerirsin?", "bu konuda de dersin" -> "Bu konuda ne dersin?")
+     * so spoken questions and suggestions are understood accurately.
+     */
+    function normalizeSpokenInput(rawText) {
+      let text = (rawText || "").trim();
+      if (!text) return "";
+
+      const replacements = [
+        [/\bsen\s+de\s+önerirsin\b/gi, "Sen ne önerirsin?"],
+        [/\bsende\s+önerirsin\b/gi, "Sen ne önerirsin?"],
+        [/\bbana\s+de\s+önerirsin\b/gi, "Bana ne önerirsin?"],
+        [/\bsen\s+de\s+dersin\b/gi, "Sen ne dersin?"],
+        [/\bsende\s+dersin\b/gi, "Sen ne dersin?"],
+        [/\bsen\s+de\s+düşünüyorsun\b/gi, "Sen ne düşünüyorsun?"],
+        [/\bbu\s+konuda\s+de\s+düşünüyorsun\b/gi, "Bu konuda ne düşünüyorsun?"],
+        [/\bpeki\s+de\s+yapalım\b/gi, "Peki ne yapalım?"],
+        [/\bşimdi\s+de\s+yapalım\b/gi, "Şimdi ne yapalım?"],
+        [/\bbugün\s+de\s+yapalım\b/gi, "Bugün ne yapalım?"],
+        [/\bbugün\s+de\s+konuşalım\b/gi, "Bugün ne konuşalım?"],
+        [/\bsen\s+de\s+tavsiye\s+edersin\b/gi, "Sen ne tavsiye edersin?"]
+      ];
+
+      for (const [pattern, replacement] of replacements) {
+        text = text.replace(pattern, replacement);
+      }
+
+      // If it clearly asks a question in spoken Turkish/English without a question mark, mark it
+      const lower = " " + text.toLowerCase() + " ";
+      const questionPatterns = /\b(ne önerirsin|ne dersin|ne düşünüyorsun|ne yapalım|ne konuşalım|tavsiye edersin|önerin ne|fikrin ne|sence nasıl|neden öyle|nasıl yaparım|hangisi daha|what do you recommend|what do you suggest|what do you think|how should i)\b/;
+      if (questionPatterns.test(lower) && !text.includes("?")) {
+        text = text + "?";
+      }
+      return text;
+    }
+
+    /**
+     * Extracts ONLY genuine noun subject phrases and strictly filters out conjugated verbs
+     * (like "önerirsin", "düşünüyorsun", "yapalım", "edersin"), pronouns, and conversational particles.
+     * Prevents the bug where a verb was treated as a quoted topic.
+     */
+    function extractCleanSubjectNoun(userText) {
+      const cleaned = (userText || "")
+        .replace(/[?!.,;:"'()]/g, " ")
+        .trim();
+
+      const stopAndFunctionWords = new Set([
+        "ben", "sen", "sende", "biz", "siz", "onlar", "bir", "bu", "şu", "o", "ve", "ile",
+        "için", "ama", "fakat", "lakin", "çok", "biraz", "gibi", "kadar", "daha", "en",
+        "mi", "mı", "mu", "mü", "de", "da", "ki", "ne", "nasıl", "neden", "niye", "hani",
+        "şey", "var", "yok", "oldu", "oluyor", "olacak", "olur", "olmaz", "yapıyorum",
+        "ediyorum", "acaba", "sence", "bana", "beni", "benim", "sana", "seni", "senin",
+        "selam", "merhaba", "hey", "ya", "peki", "şimdi", "bugün", "yarın", "artık",
+        "bence", "gerçekten", "aslında", "tamam", "evet", "hayır", "yoksa", "veya",
+        "önerirsin", "önerir", "dersin", "düşünüyorsun", "yapalım", "edelim", "konuşalım",
+        "bakalım", "söyle", "anlat", "istiyorum", "bilmiyorum", "anlıyorum", "diyorsun",
+        "what", "how", "why", "when", "where", "who", "which", "would", "could", "should",
+        "recommend", "suggest", "think", "about", "today", "really", "just", "like", "know"
+      ]);
+
+      // Turkish & English conjugated verb suffix patterns that must NEVER be treated as noun topics
+      const verbSuffixPattern = /(irsin|ırsın|ürsün|ursun|ersin|arsın|orsun|yorum|yorsun|yoruz|alım|elim|malıyım|meliyim|malı|meli|acağım|eceğim|acaksın|eceksin|dım|dim|dum|düm|tım|tim|tum|tüm|mışsın|mişsin|abilir|ebilir|iyor|üyor|uyor|ıyor)$/i;
+
+      const words = cleaned.split(/\s+/).filter(w => {
+        const lw = w.toLowerCase();
+        if (lw.length <= 2) return false;
+        if (stopAndFunctionWords.has(lw)) return false;
+        if (verbSuffixPattern.test(lw)) return false;
+        return true;
+      });
+
+      if (words.length === 0) return "";
+      return words.slice(0, 3).join(" ");
+    }
+
+    /**
+     * Detects the semantic domain of a user message so the conversation stays grounded
+     * in the actual topic across multiple turns.
+     */
+    function detectConversationDomain(lowerText) {
+      if (/\b(kod|yazılım|uygulama|proje|yapay zeka|sistem|tasarım|algoritma|teknoloji|web|android|deploy|vercel|api|bug|programlama|code|software|app|ai|tech|design)\b/.test(lowerText)) {
+        return "project_tech";
+      }
+      if (/\b(kahve|çay|yemek|hava|yağmur|güneş|uyku|sabah|akşam|gece|yürüyüş|tatil|dinlen|keyif|coffee|tea|weather|food|walk|relax|chill)\b/.test(lowerText)) {
+        return "daily_life";
+      }
+      if (/\b(film|dizi|müzik|şarkı|kitap|roman|oyun|sinema|sanat|kültür|podcast|movie|music|book|game|art|series)\b/.test(lowerText)) {
+        return "culture_media";
+      }
+      if (/\b(iş|kariyer|toplantı|müşteri|sunum|okul|sınav|ders|öğren|eğitim|para|finans|yatırım|maaş|career|job|exam|study|work|money)\b/.test(lowerText)) {
+        return "career_learning";
+      }
+      if (/\b(arkadaş|sevgili|ilişki|aile|insanlar|güven|sohbet|yalnız|kırıldım|tartış|sosyal|friend|relationship|family|people|trust)\b/.test(lowerText)) {
+        return "relationships_social";
+      }
+      if (/\b(felsefe|hayat|anlam|psikoloji|zihin|bilinç|özgürlük|zaman|gerçek|varoluş|mutluluk|karakter|philosophy|meaning|psychology|mind|truth)\b/.test(lowerText)) {
+        return "philosophy_psychology";
+      }
+      if (/\b(yoruldum|stres|bunal|kafam karışık|endişe|kaygı|kork|tükendim|moralim|üzgün|sıkıldım|bıktım|tired|stressed|anxious|overwhelmed|bored|sad)\b/.test(lowerText)) {
+        return "stress_emotion";
+      }
+      if (/\b(spor|antrenman|koşu|sağlık|enerji|beslenme|uyku düzeni|workout|gym|health|fitness|energy)\b/.test(lowerText)) {
+        return "health_energy";
+      }
+      return "";
+    }
+
+    /**
+     * Anti-Hallucination & Quality Filter:
+     * Rejects mechanical quoted-verb echoes, banned coaching clichés, and fabricated past memories.
+     */
+    function sanitizeAndValidateReply(reply) {
+      if (!reply || typeof reply !== "string") return "";
+      let clean = reply.trim().replace(/^["']+|["']+$/g, "").trim();
+      const lower = clean.toLowerCase();
+
+      const bannedPatterns = [
+        "üzerinde kafa yorman harika",
+        "önümüzdeki 30 dakikada yapacağın tek net hamleyi söyle",
+        "söylediğin şey çok değerli",
+        "bakış açısıyla baktığımızda",
+        "as an ai language model"
+      ];
+      for (const banned of bannedPatterns) {
+        if (lower.includes(banned)) {
+          return "";
+        }
+      }
+      return clean;
+    }
+
+    /**
+     * Attempts a live Gemini AI call with multi-turn conversation history and strict
+     * topic-grounded, anti-hallucination system instructions if an API key is configured.
+     */
+    async function tryFetchRealGeminiReply(normalizedUserText) {
+      const apiKey = (window.GEMINI_API_KEY || localStorage.getItem("IDEAL_SELF_GEMINI_KEY") || "").trim();
+      if (!apiKey) return null;
+
+      const recentHistory = conversationHistory.slice(-8).map(turn => (
+        `Kullanıcı: ${turn.user}\n${state.companionName}: ${turn.companion}`
+      )).join("\n");
+
+      const systemPrompt = state.lang === "tr"
+        ? `Sen ${state.companionName} (${state.archetypeTitle}), kullanıcının zeki, özgüvenli, net ve samimi yakın dostusun.
+KESİN KURALLAR:
+1. Kullanıcının söylediği sözün veya sorduğu sorunun İÇERİĞİNE ve BAĞLAMINA doğrudan, mantıklı ve doyurucu yanıt ver.
+2. ASLA her konuyu ezbere "hemen harekete geç", "30 dakikada tek hamle yap" gibi koçluk sloganlarına bağlama. Kullanıcı fikir, öneri veya sohbet istiyorsa doğrudan o konuda somut fikir üret ve sohbet et.
+3. ASLA kullanıcının cümlesindeki tek bir kelimeyi veya fiili ("önerirsin" vb.) tırnak içine alıp mekanik şekilde tekrarlama.
+4. Geçmişte konuşulmamış şeyleri uydurma (halüsinasyon görme). Sadece aşağıdaki gerçek konuşma geçmişini dikkate al.
+5. Sesli telefon görüşmesine uygun olarak 2-3 doğal, akıcı ve net cümleyle yanıt ver (markdown, yıldız veya madde işareti kullanma).`
+        : `You are ${state.companionName} (${state.archetypeTitle}), the user's sharp, confident, candid close friend.
+STRICT RULES:
+1. Respond directly and logically to the exact topic, question, or idea the user just shared.
+2. NEVER force every topic into a generic "take action in 30 minutes" productivity lecture. If they ask for a recommendation, idea, or casual chat, engage directly with thoughtful substance.
+3. NEVER mechanically echo a single word or verb in quotes.
+4. Do NOT hallucinate unrecorded past memories. Keep replies spoken-friendly (2-3 natural sentences, no markdown).`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [
+                {
+                  role: "user",
+                  parts: [{
+                    text: `${recentHistory ? "ÖNCEKİ KONUŞMA GEÇMİŞİ:\n" + recentHistory + "\n\n" : ""}Kullanıcı: ${normalizedUserText}\n${state.companionName}:`
+                  }]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.65,
+                maxOutputTokens: 160
+              }
+            })
+          }
+        );
+        clearTimeout(timeoutId);
+        if (!response.ok) return null;
+        const data = await response.json();
+        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        return sanitizeAndValidateReply(candidateText) || null;
+      } catch (_) {
+        clearTimeout(timeoutId);
+        return null;
+      }
+    }
+
+    async function processUserMessage(userText) {
+      const normalizedText = normalizeSpokenInput(userText);
+      const displayUserText = normalizedText || userText;
+
+      const transcriptEl = document.getElementById("liveTranscriptText");
+      if (transcriptEl) {
+        transcriptEl.textContent = `${tr("Sen", "You")}: "${displayUserText}"`;
+        transcriptEl.classList.remove("hidden");
+      }
+
+      // Compute smart contextual response immediately, and upgrade with live Gemini AI if configured
+      let reply = "";
+      const liveAiReply = await tryFetchRealGeminiReply(displayUserText);
+      if (liveAiReply) {
+        reply = liveAiReply;
+        updateContextAfterTurn(displayUserText, reply);
+      } else {
+        reply = generateContextualCompanionReply(displayUserText);
+      }
+
+      conversationHistory.push({ user: displayUserText, companion: reply });
       if (conversationHistory.length > 20) conversationHistory.shift();
 
-      document.getElementById("companionReplyText").textContent = `"${reply}"`;
+      const replyEl = document.getElementById("companionReplyText");
+      if (replyEl) {
+        replyEl.textContent = `"${reply}"`;
+      }
       updateVoiceControlsUI();
       speakReply(reply);
     }
 
-    /**
-     * Extracts a meaningful topic phrase from the user's utterance so the companion
-     * references what the user actually talked about instead of sounding generic.
-     */
-    function extractKeyPhrase(userText) {
-      const cleaned = userText
-        .replace(/[?!.,;:"']/g, " ")
-        .trim();
-      const stopWords = new Set([
-        "ben", "sen", "bir", "bu", "şu", "o", "ve", "ile", "için", "ama", "fakat", "çok",
-        "biraz", "gibi", "kadar", "daha", "en", "mi", "mı", "mu", "mü", "ne", "nasıl",
-        "neden", "niye", "şey", "var", "yok", "oldu", "oluyor", "yapıyorum", "ediyorum",
-        "acaba", "sence", "bana", "beni", "benim", "senin", "selam", "merhaba", "hey", "ya"
-      ]);
-      const words = cleaned.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w.toLowerCase()));
-      if (words.length === 0) return "";
-      return words.slice(0, 3).join(" ");
+    function updateContextAfterTurn(userText, companionReply) {
+      const lower = " " + userText.toLowerCase() + " ";
+      const detectedDomain = detectConversationDomain(lower);
+      if (detectedDomain) {
+        dialogueContext.activeDomain = detectedDomain;
+      }
+      const noun = extractCleanSubjectNoun(userText);
+      if (noun) {
+        dialogueContext.activeTopicNoun = noun;
+      }
+      dialogueContext.lastUserMessage = userText;
+      dialogueContext.lastCompanionReply = companionReply;
+      dialogueContext.turnCount++;
     }
 
     function pickNonRepeating(pool, keyPrefix) {
@@ -2225,7 +2443,6 @@
           return pool[i];
         }
       }
-      // Reset keys for this category once all have been used
       Array.from(usedReplyIndices).forEach(k => {
         if (k.startsWith(keyPrefix)) usedReplyIndices.delete(k);
       });
@@ -2234,144 +2451,243 @@
     }
 
     /**
-     * Bold, Confident, Self-Assured, No-Nonsense Challenging Friend Dialogue Engine
-     * ("Net, kararlı, lafı dolandırmayan ve meydan okuyan dost")
-     * NEVER outputs canned filler like "Söylediğin şey çok değerli...".
+     * Multi-Turn Contextual & Topic-Reasoning Dialogue Engine.
+     * Understands the user's actual intent, answers questions and recommendation requests directly,
+     * remembers the active conversation topic across turns, and NEVER echoes verbs or forces
+     * out-of-context "30-minute action" templates.
      */
-    function generateBoldCompanionReply(userText) {
-      const raw = userText.trim();
+    function generateContextualCompanionReply(userText) {
+      const raw = normalizeSpokenInput(userText);
       const lower = " " + raw.toLowerCase() + " ";
-      const topic = extractKeyPhrase(raw);
-      const userGoal = (state.discoveryAnswers && state.discoveryAnswers[4]) || "";
+      const currentNoun = extractCleanSubjectNoun(raw);
+      const currentDomain = detectConversationDomain(lower);
 
+      // Update active domain and topic noun only when the new message introduces one;
+      // otherwise retain the previous turn's topic for seamless multi-turn continuity!
+      if (currentDomain) {
+        dialogueContext.activeDomain = currentDomain;
+      }
+      if (currentNoun) {
+        dialogueContext.activeTopicNoun = currentNoun;
+      }
+      const activeDomain = dialogueContext.activeDomain || "general";
+      const activeTopic = currentNoun || dialogueContext.activeTopicNoun || "";
+
+      const finalize = (replyText, intentTag) => {
+        dialogueContext.lastIntent = intentTag;
+        dialogueContext.lastUserMessage = raw;
+        dialogueContext.lastCompanionReply = replyText;
+        dialogueContext.turnCount++;
+        return replyText;
+      };
+
+      // --- ENGLISH CONVERSATIONAL ENGINE ---
       if (state.lang !== "tr") {
-        if (/\b(hi|hello|hey|yo|sup|good morning|good evening)\b/.test(lower)) {
-          return pickNonRepeating([
-            `I'm right here, sharp and ready. Skip the small talk—what's the real move we're making today?`,
-            `Hey! Energy is high. Tell me straight: what's the one thing on your plate you've been avoiding?`,
-            `Good to hear your voice. No warmup needed—what are we conquering right now?`
-          ], "en_greet");
+        if (/\b(what do you recommend|what do you suggest|your recommendation|any suggestions|what should we talk|what do you think)\b/.test(lower)) {
+          if (activeDomain === "project_tech") {
+            return finalize(pickNonRepeating([
+              `If we're looking at your tech project, I recommend stripping away secondary features first and testing the core user flow end-to-end. Which part feels the most fragile right now?`,
+              `My recommendation is to solve the hardest bottleneck first while your focus is fresh. Tell me the main technical hurdle and let's break it down together.`
+            ], "en_rec_tech"), "recommendation");
+          }
+          if (activeDomain === "stress_emotion") {
+            return finalize(pickNonRepeating([
+              `Honestly, I recommend stepping away from the screen for fifteen minutes, grabbing some water, and dropping two things off today's mental list. What's weighing on you the most right now?`,
+              `When your head feels crowded, the smartest move isn't pushing harder—it's simplifying. Let's pick just one thing to untangle and leave the rest for tomorrow.`
+            ], "en_rec_stress"), "recommendation");
+          }
+          return finalize(pickNonRepeating([
+            `Here's what I suggest: we can either brainstorm a project or decision you're weighing right now, or dive into an interesting conversation about technology, psychology, or daily life. Which direction sounds better to you?`,
+            `Since you're asking my take, let's pick something genuinely worth talking about—either a creative idea you want to sharpen or a topic you've been curious about lately. What's on your mind?`,
+            `I've got two concrete ideas: we can untangle something practical on your plate today, or just have a relaxed, candid chat to clear your head. Which one are you in the mood for?`
+          ], "en_rec_general"), "recommendation");
         }
-        if (/\b(procrastinat|delay|later|lazy|stuck|hesitat|scared|afraid|doubt)\b/.test(lower)) {
-          return pickNonRepeating([
-            `Stop waiting to feel ready—readiness is an excuse. Give yourself 10 minutes right now and attack ${topic || "the hardest part"} head-on.`,
-            `Let's be real: you don't lack time, you're just over-negotiating with yourself. Open it up and ship the first draft right now.`,
-            `Doubt only wins while you're standing still. Make a bold call on ${topic || "this"} in the next 60 seconds.`
-          ], "en_hesitate");
+
+        if (/\b(why|how so|what do you mean|explain|tell me more|example)\b/.test(lower) && raw.split(/\s+/).length <= 7) {
+          return finalize(pickNonRepeating([
+            `Think about it this way: whenever we scatter our attention across too many angles, even simple things feel heavy. Focusing on the core reason makes the answer obvious. How does that line up with your experience?`,
+            `Because clarity always beats brute force. Once you understand the underlying cause instead of just reacting to the noise, you make much sharper decisions. Does that make sense in your situation?`
+          ], "en_followup"), "followup");
         }
-        return pickNonRepeating([
-          `Let's cut straight to the core of "${topic || raw}". You already know the bold move here—stop second-guessing and execute it now.`,
-          `Here's my honest take on ${topic || "what you just said"}: playing it safe won't get you anywhere. Commit 100% and make the call.`,
-          `Don't overcomplicate ${topic || "it"}. Strip away the noise, trust your instinct, and take the lead right now.`
-        ], "en_general");
+
+        if (/\b(hi|hello|hey|good morning|good evening|how are you|what's up)\b/.test(lower) && raw.split(/\s+/).length <= 6) {
+          return finalize(pickNonRepeating([
+            `Hey! I'm doing great—clear-headed and glad we're talking. How is your day actually going so far?`,
+            `Good to hear your voice! Everything's sharp on my end. Tell me, what's on your mind today—work, life, or just a good conversation?`,
+            `Hey there! I'm right here and listening. How are you feeling today, and what should we dive into?`
+          ], "en_greet"), "greeting");
+        }
+
+        return finalize(pickNonRepeating([
+          `That's an interesting angle${activeTopic ? ` on ${activeTopic}` : ""}. Looking at it logically, the key is separating what actually matters from the background noise. How do you see it playing out?`,
+          `I see what you mean${activeTopic ? ` regarding ${activeTopic}` : ""}. Instead of rushing to a surface answer, let's look at the real trade-off here—what part of this matters most to you?`,
+          `Makes total sense. When you look at ${activeTopic || "the bigger picture"}, what's your honest instinct telling you right now?`
+        ], "en_context_general"), "general");
       }
 
-      // 1. Ses testi / kısa mikrofon kontrolü
+      // --- TURKISH CONTEXTUAL DIALOGUE ENGINE ---
+
+      // 1. ÖNERİ / FİKİR / TAVSİYE İSTEME ("Sen ne önerirsin?", "Sen de önerirsin", "Ne dersin?", "Ne yapalım?", "Ne konuşalım?", "Bana fikir ver")
+      if (/\b(ne önerirsin|de önerirsin|önerin ne|ne tavsiye|tavsiyen ne|bana bir şey öner|bir önerin var mı|sen ne dersin|bu konuda ne dersin|fikrin ne|ne düşünüyorsun|ne konuşalım|konu aç|ne yapalım|sen seç)\b/.test(lower)) {
+        if (activeDomain === "project_tech") {
+          return finalize(pickNonRepeating([
+            `Konumuz yazılım ve proje olduğuna göre net önerim şu: Aynı anda beş özelliği birden düzeltmeye çalışmak yerine önce kullanıcının en çok temas ettiği ana akışı kusursuzlaştır. Şu an projede seni en çok uğraştıran kısım arayüz mü yoksa arka plan mantığı mı?`,
+            `Bence teknik tarafta en sağlam yaklaşım, karmaşık yapıyı küçük ve test edilebilir parçalara bölmek. Önce çalışan en sade versiyonu ayağa kaldıralım, optimizasyonu hemen üstüne inşa ederiz. Bu yaklaşım aklına yatıyor mu?`,
+            `Önerim şu: Kodda veya tasarımda tıkanıklık yaşadığın noktayı tek bir cümleyle tanımla, birlikte en temiz mimari çözümü kuralım. Şu an hangi özelliği geliştirmeye odaklandın?`
+          ], "tr_rec_tech"), "recommendation");
+        }
+        if (activeDomain === "stress_emotion") {
+          return finalize(pickNonRepeating([
+            `Zihnin yorgunken sana 'daha çok çalış' demem, bu gerçekçi olmaz. Benim önerim şu an ekranlardan ve yapılacaklar listesinden 15 dakika tamamen uzaklaşıp zihnini soğutman. Seni bugün en çok yoran şey ne oldu, anlatmak ister misin?`,
+            `Böyle anlarda en iyi öneri yükü azaltmaktır dostum. Bugün yapmak zorunda olmadığın her şeyi yarına bırak ve sadece seni rahatlatacak tek bir şeye odaklan. Şu an biraz dertleşmek mi iyi gelir yoksa kafa dağıtacak başka bir konu mu açalım?`
+          ], "tr_rec_stress"), "recommendation");
+        }
+        if (activeDomain === "daily_life" || activeDomain === "culture_media") {
+          return finalize(pickNonRepeating([
+            `Keyifli bir öneri istiyorsan: Yanına güzel bir kahve al, zihnini açacak sağlam bir bilim-kurgu filmi ya da derin bir sohbet konusu seçelim. Mesela insan psikolojisi, gelecek teknolojileri veya izlediğin son iyi yapım üzerine konuşabiliriz; hangisi sarar?`,
+            `Günü biraz renklendirelim diyorsan sana iki önerim var: Ya son zamanlarda merak ettiğin ama araştırmaya fırsat bulamadığın ilginç bir konuyu masaya yatıralım, ya da tamamen rahat bir muhabbet çevirelim. Hangisini tercih edersin?`
+          ], "tr_rec_daily"), "recommendation");
+        }
+        if (activeDomain === "career_learning") {
+          return finalize(pickNonRepeating([
+            `İş ve gelişim tarafında benim önerim her zaman kaldıracı en yüksek olan konuya odaklanmaktır. Vaktini ufak tefek detaylara harcamak yerine, sana gerçekten seviye atlatacak ana beceriye veya çıktıya yatırım yap. Şu an önünde hangi seçenekler var?`,
+            `Bana sorarsan bu konuda en mantıklı strateji, belirsizliği ortadan kaldırmak. Seçeneklerin artısını ve eksisini net biçimde yan yana koyalım; seni uzun vadede hangisi daha ileri taşıyacak birlikte bakalım.`
+          ], "tr_rec_career"), "recommendation");
+        }
+        if (activeDomain === "relationships_social") {
+          return finalize(pickNonRepeating([
+            `İnsan ilişkilerinde benim en net önerim açık iletişimdir. Varsayımlar üzerinden gitmek yerine karşı tarafa ne düşündüğünü sakin, saygılı ama net bir dille söylemek her zaman düğümü çözer. Sence bu durumu doğrudan konuşsan nasıl bir tepki alırsın?`,
+            `Bence burada kendi sınırlarını koruyarak samimi bir adım atmak en doğrusu. Seni rahatsız eden veya düşündüren şeyi içerde büyütmek yerine netleştirmek her iki tarafı da rahatlatır.`
+          ], "tr_rec_social"), "recommendation");
+        }
+        // Genel öneri / Sohbet başlangıcında "Sen ne önerirsin?" sorulduğunda
+        return finalize(pickNonRepeating([
+          `Madem topu bana attın, sana üç net öneri sunayım: Birincisi, şu an üzerinde çalıştığın bir proje veya fikir varsa onu birlikte geliştirebiliriz. İkincisi, kafanı kurcalayan bir karar varsa mantık süzgecinden geçirebiliriz. Üçüncüsü de teknoloji, felsefe ya da günlük hayat üzerine keyifli bir sohbet açabiliriz. Hangisinden başlayalım?`,
+          `Memnuniyetle öneririm! Eğer bugün üretken bir moddaysan elindeki en önemli işi en pratik yoldan nasıl çözeceğimizi konuşalım; ama 'sadece kafa dağıtmak ve muhabbet etmek istiyorum' diyorsan sana ufuk açıcı bir konu açayım. Şu an hangisi sana daha uygun?`,
+          `Bana soruyorsan şu iki yoldan birini seçelim: Ya son günlerde aklına takılan ama kimseyle derinlemesine konuşmadığın bir konuyu masaya yatıralım, ya da yeni bir fikir ve teknoloji üzerine beyin fırtınası yapalım. Senin gündeminde şu an hangisi ağır basıyor?`
+        ], "tr_rec_general"), "recommendation");
+      }
+
+      // 2. KISA TAKİP SORULARI ("Neden?", "Niye?", "Nasıl yani?", "Nasıl?", "Biraz açar mısın?", "Örnek ver")
+      if (/\b(neden|niye|nasıl yani|ne demek istedin|biraz açar mısın|daha açık|örnek ver|nasıl yapacağım|peki nasıl)\b/.test(lower) && raw.split(/\s+/).length <= 6) {
+        return finalize(pickNonRepeating([
+          `Şundan dolayı: Bir konuyu sadece yüzeysel olarak düşündüğümüzde zihin onu olduğundan daha karmaşık gösterir; ama temel mantığını ve nedenini netleştirdiğimizde çözüm kendiliğinden ortaya çıkar. Senin durumunda da asıl düğüm noktası tam olarak burası. Mantıklı geliyor mu?`,
+          `Biraz daha somutlaştırayım: Mesela elinde iki seçenek veya karmaşık bir konu olduğunda, hepsini aynı anda çözmeye çalışmak yerine önce en belirleyici faktörü ayıklarsan hata payın sıfıra iner. İstersen bunu doğrudan senin örneğin üzerinden adım adım konuşalım?`,
+          `Çünkü çoğu zaman mesele bilgi eksikliği değil, bakış açısını netleştirmek. Konunun özüne indiğimizde neyin gerçekten önemli olduğunu çok daha rahat görürüz. Sen bu açıdan bakınca ne düşünüyorsun?`
+        ], "tr_followup_why"), "followup");
+      }
+
+      // 3. ONAY / KISA KATILIM ("Tamam", "Olur", "Evet", "Haklısın", "Mantıklı", "Aynen", "Güzel fikir", "İyi olur")
+      if (/\b(tamam|olur|evet|haklısın|mantıklı|aynen|katılıyorum|güzel fikir|iyi olur|hadi bakalım|devam et|anlaştık)\b/.test(lower) && raw.split(/\s+/).length <= 5) {
+        if (dialogueContext.lastIntent === "recommendation") {
+          return finalize(pickNonRepeating([
+            `Süper! O zaman ilk seçenekten girelim: Şu an kafanı en çok meşgul eden veya üzerine fikir yürütmek istediğin konuyu bana kısaca anlat, üzerine birlikte kafa yoralım.`,
+            `Harika, o halde sohbeti derinleştirelim. Son günlerde seni en çok düşündüren, meraklandıran veya çözmek istediğin mesele ne? Doğrudan onu konuşalım.`
+          ], "tr_agree_after_rec"), "continuation");
+        }
+        return finalize(pickNonRepeating([
+          `Aynı frekansta olmamıza sevindim. Peki bu konuştuğumuz çerçevede senin aklına gelen ilk detay veya eklemek istediğin nokta ne?`,
+          `Güzel, zemin netleşti. Şimdi senin bakış açını merak ediyorum: bu konuda senin içgüdün ne söylüyor?`,
+          `Harika! O zaman bir adım daha derine inelim; bu konuda senin için en kritik detay hangisi?`
+        ], "tr_agree_general"), "continuation");
+      }
+
+      // 4. KARŞI ÇIKMA / İTİRAZ / SORGULAMA ("Katılmıyorum", "Bence yanlış", "Öyle değil", "Saçma", "Alakası yok", "Anlamadın")
+      if (/\b(katılmıyorum|bence yanlış|öyle değil|yanılıyorsun|alakası yok|anlamadın|saçma|mantıksız|hiç de bile|farklı düşünüyorum)\b/.test(lower)) {
+        return finalize(pickNonRepeating([
+          `İşte gerçek sohbet böyle olur! Farklı düşünmen çok değerli; benim kaçırdığım veya senin farklı gördüğün noktayı doğrudan anlat, senin perspektifinden bakalım.`,
+          `Harika, ezbere onaylamaktansa böyle net itiraz etmeni tercih ederim. Sence nerede yanılıyorum veya meselenin aslı ne? Seni dinliyorum.`,
+          `Olabilir, belki konuyu farklı bir açıdan ele aldık. Bana tam olarak neyi kastettiğini veya senin nasıl düşündüğünü söyle, doğrudan o eksende konuşalım.`
+        ], "tr_disagree"), "disagreement");
+      }
+
+      // 5. SES / BAĞLANTI KONTROLÜ ("Sesim geliyor mu?", "Beni duyuyor musun?", "Alo")
       if (/\b(sesim geliyor mu|beni duyuyor musun|alo|deneme|test|duyabiliyor musun|oradasın|orda mısın)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Sesin gayet net ve güçlü geliyor! Mikrofon sağlam, bahane yok; hadi asıl konuya gir, bugün neyi deviriyoruz?`,
-          `Seni kristal netliğinde duyuyorum dostum. Ses kontrolü bittiğine göre doğrudan sadede gelelim: aklındaki ilk hamle ne?`,
-          `Buradayım ve seni tam netlikle duyuyorum. Lafı uzatmadan söyle bakalım, gündemimizde ne var?`
-        ], "tr_mic");
+        return finalize(pickNonRepeating([
+          `Sesin gayet net ve berrak geliyor, seni çok iyi duyuyorum! Aklındaki konuyu veya soruyu doğrudan paylaşabilirsin, dinliyorum.`,
+          `Seni kristal netliğinde duyuyorum dostum, bağlantımız gayet sağlam. Bugün ne üzerine konuşmak istersin?`,
+          `Buradayım ve sesini çok net alıyorum. İstediğin konudan girebilirsin, seni dinliyorum.`
+        ], "tr_mic"), "mic_check");
       }
 
-      // 2. Selamlaşma & Hal-Hatır
-      if (/\b(selam|merhaba|naber|nasılsın|ne haber|günaydın|iyi akşamlar|hey|selamlar)\b/.test(lower) && raw.split(/\s+/).length <= 5) {
-        return pickNonRepeating([
-          `Selam! Enerjim tam, zihnim berrak. Lafı dolandırmadan soracağım: bugün gerçekten hakkını vermek istediğin tek iş hangisi?`,
-          `Hoş geldin dostum, bomba gibiyim. Isınma turlarını geçelim; şu an masanda bekleyen en kritik mesele ne?`,
-          `Selam! Ben hazırım, peki sen bugün konfor alanından çıkıp o ertelediğin adımı atmaya hazır mısın?`,
-          `Harikayım ve doğrudan aksiyon modundayım. Söyle bakalım, bugün neyi bahane etmeyi bırakıp sonuca bağlıyoruz?`
-        ], "tr_greet");
+      // 6. SELAMLAŞMA & HAL-HATIR ("Selam", "Merhaba", "Nasılsın?", "Naber?", "Günün nasıl geçiyor?")
+      if (/\b(selam|merhaba|naber|nasılsın|ne haber|günaydın|iyi akşamlar|iyi geceler|hey|selamlar|keyifler nasıl)\b/.test(lower) && raw.split(/\s+/).length <= 6) {
+        return finalize(pickNonRepeating([
+          `Selam! Gayet iyiyim, zihnim açık ve sohbete hazırım. Senin günün nasıl geçiyor, bugün kafanda neler var?`,
+          `Merhaba dostum! Benim tarafımda her şey yolunda, enerjim yerinde. Sen nasılsın, bugün neler yapıyorsun?`,
+          `Selamlar! Seni duymak güzel. Anlat bakalım, bugün keyifler nasıl, hangi konu üzerine sohbet edelim?`
+        ], "tr_greet"), "greeting");
       }
 
-      // 3. Şikayet / "Hep aynı şeyi söylüyorsun" / Bot eleştirisi
-      if (/\b(aynı şey|tekrar|papağan|sıkıldım|sinir bozucu|saçma|robot|düzgün konuş|değiştir)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Haklısın, o sıkıcı kalıp cümleleri çöpe attım. Artık karşında lafı eğip bükmeyen, doğrudan konuştuğun konuya giren net bir dost var. Şimdi beni istediğin yerden sına!`,
-          `Kalıp cevaplar bitti dostum, dobra moddayız. Ne söylersen doğrudan ona yanıt vereceğim; hadi aklındaki en zor konuyu masaya yatır.`,
-          `Net konuşalım: politik veya tekrarlayan cümleler benim tarzım değil. Şimdi filtresiz devam ediyoruz, söyle bakalım ne düşünüyorsun?`
-        ], "tr_meta");
+      // 7. GÜNLÜK HAYAT, KAHVE, HAVA, YEMEK, DİNLENME, MUHABBET (Asla aksiyon/koçluk baskısı yapmaz!)
+      if (currentDomain === "daily_life" || /\b(kahve|çay|hava|yağmur|dinleniyorum|oturuyorum|yemek|uyku|sabah|akşam|gece|yürüyüş|keyif)\b/.test(lower)) {
+        return finalize(pickNonRepeating([
+          `Çok iyi yapıyorsun, bazen günün temposunda böyle sakin anlar yakalamak zihni sıfırlamak için birebirdir. Bugün genel olarak nasıl geçti senin için?`,
+          `Kulağa gayet keyifli geliyor! İnsan sürekli koşturmaca içinde olamaz, böyle rahat anların tadını çıkarmak lazım. Bu aralar seni en çok ne dinlendiriyor?`,
+          `Harika bir atmosfer. Böyle sakin zamanlarda insanın aklına güzel fikirler veya ilginç sorular gelir; şu an kafanda dönen bir konu var mı yoksa tamamen dinlenme modunda mısın?`
+        ], "tr_daily_life"), "daily_life");
       }
 
-      // 4. Erteleme, Üşenme, Kararsızlık, Bahane
-      if (/\b(ertele|üşen|başlayamıyorum|kararsız|bilmiyorum|yapamıyorum|zor geliyor|tıkandım|odaklanamıyorum|motivasyon)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Açık konuşalım: şu an ihtiyacın olan şey motivasyon değil, disiplin. ${topic ? `"${topic}" konusunda` : "Bu konuda"} hazır hissetmeyi bekleme, hemen şimdi 15 dakikalık ilk adımı başlat.`,
-          `Kendini kandırmayı bırak dostum; kararsızlık dediğin şey aslında hata yapma korkusu. En kusurlu haliyle bile olsa şimdi başla, yolda mükemmelleştiririz.`,
-          `Zihnin sana yine konforlu bahaneler üretiyor. ${topic ? `"${topic}" işini` : "Önündeki işi"} gözünde büyütmeyi kes, sadece ilk parçasını şu an bitir ve bana haber ver!`,
-          `Odaklanamamanın sebebi aynı anda beş şeyi düşünmen. Diğer dördünü kapat, sadece en zor olanın üstüne git; sen bundan çok daha güçlüsün.`
-        ], "tr_procrastinate");
+      // 8. KÜLTÜR, FİLM, DİZİ, MÜZİK, KİTAP, OYUN
+      if (currentDomain === "culture_media") {
+        return finalize(pickNonRepeating([
+          `Kültür ve sanat sohbeti her zaman zihni açar. Bahsettiğin şeyde seni en çok etkileyen taraf kurgusu mu oldu yoksa verdiği atmosfer mi?`,
+          `Güzel konu! İyi bir film, kitap ya da müzik insanın bakış açısını bir anda değiştirebiliyor. Sen bu tarzda en çok hangi temaları seviyorsun?`,
+          `Harika bir tercih. İstersen bunun üzerine biraz kritik yapalım; sence onu sıradan işlerden ayıran en güçlü detay ne?`
+        ], "tr_culture"), "culture_media");
       }
 
-      // 5. Korku, Kaygı, Stres, Yorgunluk, Aşırı Düşünme (Overthinking)
-      if (/\b(kork|endişe|stres|yoruldum|bıktım|kafam karışık|bunal|yetişmiyor|panik|çekiniyorum|ya olmazsa)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Derin bir nefes al ve şu "ya olmazsa" senaryolarını hemen çöpe at. ${topic ? `"${topic}"` : "Bu durum"} senin kontrol edebileceğinden büyük değil; önce elindeki ilk somut adımı at, gerisi kendiliğinden açılacak.`,
-          `Kafandaki gürültüyü sustur dostum. Fazla düşünmek eylemin düşmanıdır; şu an kontrol edebildiğin tek şeye odaklan, sırtın yere gelmez.`,
-          `Yorulmuş olman pes edeceğin anlamına gelmez. Kısa bir mola ver, omuzlarını dikleştir ve ${topic ? `"${topic}" meselesine` : "meseleye"} çok daha soğukkanlı bir lider gibi geri dön.`,
-          `Çekinilecek hiçbir şey yok! En kötü ne olabilir ki? Deneyip yanılmak, kenarda bekleyip "keşke" demekten yüz kat daha onurludur.`
-        ], "tr_stress");
+      // 9. TEKNOLOJİ, YAZILIM, YAPAY ZEKA, KODLAMA, UYGULAMA GELİŞTİRME
+      if (currentDomain === "project_tech") {
+        return finalize(pickNonRepeating([
+          `Teknoloji ve yazılım tarafında en kritik şey, sistemin gerçekten kullanıcının ihtiyacını temiz ve hatasız çözmesidir. ${activeTopic ? `${activeTopic} konusunda` : "Bu yapıda"} şu an odaklandığın ana mimari veya özellik hangisi?`,
+          `Çok güzel bir teknik konu. İyi bir ürün geliştirirken karmaşıklığı azaltıp doğrudan çalışan deneyime odaklanmak her zaman kazandırır. Şu an burada çözmek istediğin özel bir problem mi var yoksa yeni bir fikir mi tasarlıyorsun?`,
+          `Yazılım ve yapay zeka projelerinde bağlamı doğru kurmak işin yarısıdır. Anlat bakalım, aklındaki yapıyı nasıl kurgulamayı düşünüyorsun?`
+        ], "tr_tech"), "project_tech");
       }
 
-      // 6. İş, Proje, Kodlama, Uygulama, Kariyer, Para, Hedef
-      if (/\b(proje|iş|uygulama|kod|deploy|vercel|kariyer|para|hedef|çalışma|sunum|toplantı|müşteri|sınav|okul)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Mesele "${topic || "bu proje"}" ise yarım yamalak iş yapma, doğrudan en kritik parçayı tamamla. Bugün masadan kalkmadan önce hangi somut çıktıyı bitiriyorsun?`,
-          `"${topic || "Hedefin"}" konusunda standartların yüksek olsun. Detaylarda boğulmak yerine doğrudan çalışan, sonuç üreten çekirdek kısmı bitir; hız her şeydir.`,
-          `Güzel hedef! Ama sadece konuşmak yetmez; "${topic || "bu iş"}" için önümüzdeki bir saat içinde atacağın en cesur ve ölçülebilir adım ne?`,
-          `Bak, "${topic || "bu alanda"}" fark yaratmak istiyorsan herkesin çekindiği o zor kısmı ilk sen çözmelisin. Şimdi kolları sıva, arkandayım.`
-        ], "tr_work");
+      // 10. DUYGUSAL DURUM, YORGUNLUK, STRES, SIKINTI (Empatik, gerçekçi ve sakin dost)
+      if (currentDomain === "stress_emotion") {
+        return finalize(pickNonRepeating([
+          `Seni çok iyi anlıyorum; bazen üst üste gelen şeyler insanın enerjisini gerçekten tüketebiliyor. Şu an kendine yüklenmeyi bırak, her şeyi bir anda çözmek zorunda değilsin. Seni en çok neyin yorduğunu anlatmak ister misin?`,
+          `Kafanın karışık veya yorgun olması çok doğal dostum. Böyle anlarda hemen bir şey yapmak zorunda değilsin; gel önce şu kafandaki ağırlığı biraz konuşarak dağıtalım. Ne oldu bugün?`,
+          `Bazen sadece durup derin bir nefes almak bile en doğru karardır. Üzerindeki baskıyı biraz kenara bırakalım; şu an içini dökmek mi iyi gelir yoksa kafanı dağıtacak başka bir şeyden mi konuşalım?`
+        ], "tr_emotion"), "stress_emotion");
       }
 
-      // 7. İlişkiler, İnsanlar, Sosyal Ortam, Tartışma
-      if (/\b(arkadaş|sevgili|ilişki|insanlar|aile|tartış|kırıldım|yalnız|güven|sınır)\b/.test(lower)) {
-        return pickNonRepeating([
-          `İnsan ilişkilerinde en büyük güç netliktir dostum. "${topic || "Bu durumda"}" içinden geçeni ima etmek yerine doğrudan ve özgüvenle söyle; sınırlarını ancak sen çizebilirsin.`,
-          `Başkalarının ne düşündüğüne göre yaşarsan kendi rotanı kaybedersin. "${topic || "Bu konuda"}" kendi duruşunu bozma, net ol ve geri adım atma.`,
-          `Kimseye kendini kanıtlamak zorunda değilsin. Değerini bilen yanındadır, bilmeyene de açık kapı bırakmaya gerek yok. Sen kendi merkezinde kal.`
-        ], "tr_social");
+      // 11. İLİŞKİLER, İNSANLAR, ARKADAŞLIK, SOSYAL HAYAT
+      if (currentDomain === "relationships_social") {
+        return finalize(pickNonRepeating([
+          `İnsan ilişkileri gerçekten ince denge ister. Karşılıklı güven ve açık iletişim olmadığında en basit konu bile karmaşıklaşıyor. Senin bu durumda içini en çok kurcalayan kısım ne?`,
+          `İlişkilerde ve arkadaşlıkta insanın kendi değerini ve sınırlarını bilmesi çok önemli. Sence karşı tarafın tavrının arkasında ne var, sen bu durumu nasıl değerlendiriyorsun?`,
+          `Sosyal dinamiklerde bazen bir adım geri çekilip tabloya dışarıdan bakmak her şeyi netleştirir. Bana olayı biraz daha anlatır mısın, birlikte objektif bir gözle bakalım.`
+        ], "tr_relationships"), "relationships_social");
       }
 
-      // 8. Doğrudan Soru / Fikir İsteme ("Ne yapmalıyım?", "Sence nasıl?", "Ne dersin?")
-      if (raw.includes("?") || /\b(ne yapmalı|sence|ne dersin|nasıl yap|öneri|tavsiye|fikrin ne|hangisi)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Sana net cevabımı vereyim: "${topic || raw}" konusunda güvenli seçeneği değil, seni biraz terletecek ama büyütecek olan seçeneği seç. İçgüdün zaten cevabı biliyor, hemen uygula.`,
-          `Lafı dolandırmayacağım: üzerinde 5 dakikadan fazla düşündüğün her karar ertelemeye dönüşür. "${topic || "Bu konu"}" için şimdi cesur olan yolu seç ve arkana bakma.`,
-          `Benim tavsiyem net: önce en zor görünen engelin üstüne yürü. "${topic || "Burada"}" ilk adımı sen atarsan tüm kontrol senin eline geçer.`,
-          `Bana soruyorsan yarım karar verme! Ya tam girip hakkını ver ya da vakit kaybetmeden listeden çıkar. Senin yerinde olsam hemen şimdi başlardım.`
-        ], "tr_question");
+      // 12. FELSEFE, PSİKOLOJİ, HAYATIN ANLAMI, İNSAN DOĞASI
+      if (currentDomain === "philosophy_psychology") {
+        return finalize(pickNonRepeating([
+          `Derin ve güzel bir meseleye değindin. İnsan zihni çoğu zaman kontrol edemediği şeylere anlam yüklemeye çalışırken asıl elinde olan anı kaçırabiliyor. Sen bu konuda ne düşünüyorsun, sence insanı asıl motive eden şey ne?`,
+          `Felsefi ve psikolojik açıdan bakınca çok katmanlı bir konu. Çoğu insan alışkanlıklarla yaşarken böyle temel soruları sormak bile ciddi bir farkındalık. Senin bu konudaki temel görüşün nasıl şekillendi?`,
+          `Böyle derin sohbetleri çok seviyorum. Bence insanın kendi karakterini ve dünyayı sorgulaması gelişimin en doğal parçası. Bu düşünce senin aklına nereden takıldı?`
+        ], "tr_philosophy"), "philosophy_psychology");
       }
 
-      // 9. Olumlu Haber / Başarı / "Yaptım", "Bitti", "Harika"
-      if (/\b(yaptım|bitirdim|başardım|hallettim|harika|süper|tamamlandı|çözdüm|kazandım)\b/.test(lower)) {
-        return pickNonRepeating([
-          `İşte beklediğim hamle bu! "${topic || "Bunu"}" net şekilde bitirmen kaliteni gösteriyor. Şimdi hız kesmeden sıradaki hedefi söyle, ivmeyi kaybetmeyelim!`,
-          `Helal olsun dostum, laf değil icraat üretmişsin! Bu özgüveni koru; şimdi çıtayı bir kademe daha yukarı taşıma vakti.`,
-          `Tam tahmin ettiğim gibi, üstüne gidince nasıl da çözülüyor! Şimdi bu rüzgarı arkana al ve ikinci hamleni yap.`
-        ], "tr_win");
+      // 13. İKİ SEÇENEK ARASINDA KALMA / KARAR & SORU ("... mı yoksa ... mı?", "Hangisi?", "Nasıl yapmalıyım?")
+      if (/\b(mı yoksa|mi yoksa|mu yoksa|mü yoksa|arasında kaldım|hangisini|hangisi daha|karar veremiyorum|ne yapmalıyım|nasıl çözebilirim)\b/.test(lower) || raw.includes("?")) {
+        return finalize(pickNonRepeating([
+          `Soruna doğrudan ve mantıklı bir çerçeveden bakalım: ${activeTopic ? `${activeTopic} konusunda` : "Burada"} kısa vadeli rahatlığı değil, sana uzun vadede hem iç huzuru hem de somut fayda sağlayacak olan seçeneği merkeze koymalıyız. Seçeneklere bu gözle baktığında hangisi daha ağır basıyor?`,
+          `Güzel soru! Bunu netleştirmenin en sağlam yolu şu: Bir yıl sonra bugüne dönüp baktığında hangi kararı vermiş olmak seni daha tatmin ederdi? Gel iki alternatifin de en güçlü ve en zayıf yönünü birlikte tartalım.`,
+          `Mantıklı düşünelim: ${activeTopic ? `${activeTopic} meselesinde` : "Sorduğun konuda"} asıl belirleyici olan şey senin önceliğin. Şu an senin için hız ve pratiklik mi daha önemli, yoksa derinlik ve kalıcılık mı? Ona göre en doğru cevabı netleştirelim.`
+        ], "tr_question_logic"), "question");
       }
 
-      // 10. Felsefe, Hayat, Anlam, Özgüven, Karakter
-      if (/\b(hayat|anlam|özgüven|cesaret|güç|karakter|gelecek|vizyon|özgürlük|disiplin)\b/.test(lower)) {
-        return pickNonRepeating([
-          `Özgüven aynanın karşısında olumlama yaparak gelmez dostum; zor işlerin altından kalktıkça inşa edilir. "${topic || "Hayatta"}" kendi sözünü kendine tuttuğun an yenilmez olursun.`,
-          `Cesaret korkmamak değildir, sesin titrese bile o adımı atmaktır. "${topic || "Vizyonun"}" için bugün konforunu bozacak bir şey yap.`,
-          `Karakter, kimse bakmıyorken ne yaptığınla ölçülür. Bahaneleri elinin tersiyle ittiğin gün ideal benliğin zaten sensin.`
-        ], "tr_philosophy");
-      }
-
-      // 11. Kullanıcının spesifik cümlesine doğrudan atıf yapan dinamik ve cesur yanıtlar (ASLA sabit tek cümle değil)
-      const dynamicPool = [
-        `"${topic || raw}" konusunu masaya yatırman güzel ama sadece konuşmakla yetinmeyelim. Şu an bu konuda seni en çok zorlayan noktayı söyle, doğrudan oradan başlayalım.`,
-        `Bak dostum, "${topic || raw}" meselesinde topu taca atma. İçten içe ne yapman gerektiğini çok iyi biliyorsun; seni tutan şeyi şimdi kırıp geçelim.`,
-        `Net konuşacağım: "${topic || raw}" için mükemmel zamanı beklersen o zaman hiç gelmeyecek. Elindeki imkanlarla tam şu an ilk hamleyi yap!`,
-        `"${topic || raw}" dedin ya, işte tam orada cesur bir karar gerekiyor. Yarım yamalak değil, tam kararlılıkla üstüne gitmeye var mısın?`,
-        `Güzel nokta! "${topic || raw}" konusunda çoğu insan çekinir ama sen geri adım atacak biri değilsin. Hadi bunu somut bir eyleme dök, ilk adımın ne oluyor?`,
-        `Lafı hiç eğip bükmeyelim: "${topic || raw}" senin için gerçekten önemliyse, bugün diğer bütün dikkat dağıtıcıları kapatıp buna odaklanacaksın. Anlaştık mı?`,
-        `"${topic || raw}" üzerinde kafa yorman harika, şimdi bunu sonuca çevirme zamanı. Bana önümüzdeki 30 dakikada yapacağın tek net hamleyi söyle!`
-      ];
-      return pickNonRepeating(dynamicPool, "tr_dynamic");
+      // 14. GENEL BAĞLAMSAL SOHBET (Asla tırnak içinde fiil tekrarlamaz veya "30 dakikada hamle yap" demez!)
+      return finalize(pickNonRepeating([
+        `Söylediğin nokta çok mantıklı${activeTopic ? `, özellikle ${activeTopic} bağlamında düşününce` : ""}. Konuya bu açıdan yaklaşmak pek çok detayı daha net görmeyi sağlıyor. Peki bu durumun senin için en önemli tarafı ne, biraz daha açar mısın?`,
+        `Anladım dostum${activeTopic ? `, ${activeTopic} konusundaki` : ""} bakış açın gayet net. Bence bu meseleyi biraz daha derinleştirebiliriz; şu an aklındaki asıl hedef veya merak ettiğin kısım tam olarak neresi?`,
+        `Güzel bir noktaya temas ettin. ${activeTopic ? `${activeTopic} meselesini` : "Bunu"} tüm yönleriyle ele aldığımızda sence en kritik detay hangisi? Birlikte üzerine konuşalım.`
+      ], "tr_contextual_general"), "general");
     }
 
     function renderQuickPrompts() {
@@ -2379,18 +2695,18 @@
       if (!row) return;
       const prompts = state.lang === "tr"
         ? [
-            "Projemi sürekli erteliyorum, beni silkele!",
-            "Bugün odaklanmakta zorlanıyorum, ne yapayım?",
-            "Kararsız kaldım, nasıl cesur adım atarım?",
-            "Özgüvenimi nasıl daha net ortaya koyarım?"
+            "Sen ne önerirsin? Birlikte güzel bir konu seçelim.",
+            "Bir karar arasında kaldım, mantıklı bir fikir ver.",
+            "Teknoloji ve yapay zeka üzerine sohbet edelim.",
+            "Bugün kafamı toparlamam lazım, nereden başlayalım?"
           ]
         : [
-            "I keep procrastinating on my project—challenge me!",
-            "Help me cut through overthinking right now.",
-            "How do I make a bold decision today?"
+            "What do you recommend we talk about today?",
+            "Help me weigh a decision logically.",
+            "Let's chat about technology and psychology."
           ];
       row.innerHTML = prompts.map(p => `
-        <button class="mini-chip" onclick="sendTypedTurn('${p.replace(/'/g, "\\'")}')">⚡ ${p}</button>
+        <button class="mini-chip" onclick="sendTypedTurn('${p.replace(/'/g, "\\'")}')">💬 ${p}</button>
       `).join("");
     }
 

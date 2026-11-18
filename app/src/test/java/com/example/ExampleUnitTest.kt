@@ -111,6 +111,28 @@ class ExampleUnitTest {
             verifiedMemories = emptyList()
         )
         assertFalse(fabricatedMemoryValidation.isValid)
+
+        // Validate STT phonetic slip normalization ("Sen de önerirsin" -> "Sen ne önerirsin?")
+        assertEquals("Sen ne önerirsin?", PersonalityEngine.normalizeSpokenTranscript("Sen de önerirsin"))
+        assertEquals(
+            ConversationScenarioType.ADVICE_REQUEST,
+            PersonalityEngine.classifyScenario("Sen de önerirsin")
+        )
+
+        // Validate mechanical verb-echo / 30-minute action cliché is rejected
+        val mechanicalEchoValidation = PersonalityEngine.validateResponseQuality(
+            reply = "\"önerirsin\" üzerinde kafa yorman harika, şimdi bunu sonuca çevirme zamanı. Bana önümüzdeki 30 dakikada yapacağın tek net hamleyi söyle!",
+            verifiedMemories = emptyList()
+        )
+        assertFalse(mechanicalEchoValidation.isValid)
+
+        // Validate contextual fallback reply answers "Sen de önerirsin" directly and passes quality gate
+        val contextualReply = PersonalityEngine.generateContextualFallbackReply(
+            userMessage = "Sen de önerirsin",
+            respondInTurkish = true
+        )
+        assertTrue(PersonalityEngine.validateResponseQuality(contextualReply, emptyList()).isValid)
+        assertFalse(contextualReply.contains("\"önerirsin\""))
     }
 
     @Test

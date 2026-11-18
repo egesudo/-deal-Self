@@ -84,8 +84,37 @@ object PersonalityEngine {
         "every cloud has a silver lining",
         "unlock your limitless potential",
         "söylediğin şey çok değerli",
-        "bakış açısıyla baktığımızda"
+        "bakış açısıyla baktığımızda",
+        "üzerinde kafa yorman harika",
+        "önümüzdeki 30 dakikada yapacağın tek net hamleyi söyle"
     )
+
+    /**
+     * Normalizes common speech-to-text (STT) phonetic slips in Turkish & English
+     * (e.g. "Sen de önerirsin" -> "Sen ne önerirsin?", "bu konuda de dersin" -> "Bu konuda ne dersin?")
+     * so spoken questions and recommendation requests are understood in context.
+     */
+    fun normalizeSpokenTranscript(rawText: String): String {
+        var text = rawText.trim()
+        if (text.isEmpty()) return ""
+
+        val replacements = listOf(
+            Regex("\\bsen\\s+de\\s+önerirsin\\b", RegexOption.IGNORE_CASE) to "Sen ne önerirsin?",
+            Regex("\\bsende\\s+önerirsin\\b", RegexOption.IGNORE_CASE) to "Sen ne önerirsin?",
+            Regex("\\bbana\\s+de\\s+önerirsin\\b", RegexOption.IGNORE_CASE) to "Bana ne önerirsin?",
+            Regex("\\bsen\\s+de\\s+dersin\\b", RegexOption.IGNORE_CASE) to "Sen ne dersin?",
+            Regex("\\bsende\\s+dersin\\b", RegexOption.IGNORE_CASE) to "Sen ne dersin?",
+            Regex("\\bsen\\s+de\\s+düşünüyorsun\\b", RegexOption.IGNORE_CASE) to "Sen ne düşünüyorsun?",
+            Regex("\\bbu\\s+konuda\\s+de\\s+düşünüyorsun\\b", RegexOption.IGNORE_CASE) to "Bu konuda ne düşünüyorsun?",
+            Regex("\\bpeki\\s+de\\s+yapalım\\b", RegexOption.IGNORE_CASE) to "Peki ne yapalım?",
+            Regex("\\bşimdi\\s+de\\s+yapalım\\b", RegexOption.IGNORE_CASE) to "Şimdi ne yapalım?",
+            Regex("\\bbugün\\s+de\\s+konuşalım\\b", RegexOption.IGNORE_CASE) to "Bugün ne konuşalım?"
+        )
+        for ((pattern, replacement) in replacements) {
+            text = text.replace(pattern, replacement)
+        }
+        return text
+    }
 
     /**
      * Builds the complete 12-dimension structured personality model from the user's CompanionState.
@@ -149,7 +178,8 @@ object PersonalityEngine {
      * applies targeted guardrails (e.g. anti-hallucination on recall/uncertain facts, grounded empathy on distress).
      */
     fun classifyScenario(userMessage: String): ConversationScenarioType {
-        val lower = userMessage.lowercase()
+        val normalized = normalizeSpokenTranscript(userMessage)
+        val lower = normalized.lowercase()
         return when {
             listOf(
                 "hatırlıyor musun", "geçen sefer", "daha önce ne", "do you remember",
@@ -180,7 +210,9 @@ object PersonalityEngine {
 
             listOf(
                 "ne yapmalıyım", "sence nereden", "tavsiye", "karar veremiyorum",
-                "what should i do", "how should i handle", "give me advice", "help me decide"
+                "ne önerirsin", "de önerirsin", "önerin ne", "bana bir şey öner", "fikrin ne",
+                "what should i do", "how should i handle", "give me advice", "help me decide",
+                "what do you recommend", "what do you suggest"
             ).any { lower.contains(it) } -> ConversationScenarioType.ADVICE_REQUEST
 
             else -> ConversationScenarioType.CASUAL
@@ -288,7 +320,7 @@ object PersonalityEngine {
     /**
      * Constructs a high-speed, token-efficient system prompt incorporating the 12-dimension
      * personality model, the contrasting/challenging alter-ego friendship dynamic, scenario
-     * guardrails, and concise output length rules for minimal Time-to-First-Token (TTFT).
+     * guardrails, and strict contextual topic adherence for minimal Time-to-First-Token (TTFT).
      */
     fun buildPersonalityDirective(
         state: CompanionState,
@@ -297,17 +329,18 @@ object PersonalityEngine {
         respondInTurkish: Boolean,
         currentUserTurn: String = ""
     ): String {
-        val scenario = classifyScenario(currentUserTurn)
+        val normalizedTurn = normalizeSpokenTranscript(currentUserTurn)
+        val scenario = classifyScenario(normalizedTurn)
         val languageInstruction = if (respondInTurkish) {
-            "LANGUAGE (NATURAL TURKISH - tr-TR): Speak in natural, bold, self-assured everyday Turkish ('sen' dili—net, kararlı, lafı dolandırmayan, özgüvenli ve gerektiğinde meydan okuyan yakın dost gibi). NEVER use robotic filler like 'Söylediğin şey çok değerli' or '...bakış açısıyla baktığımızda'."
+            "LANGUAGE (NATURAL TURKISH - tr-TR): Speak in natural, intelligent, self-assured everyday Turkish ('sen' dili—net, kararlı, konuyu gerçekten anlayan ve doğrudan mantıklı cevap veren yakın dost gibi). NEVER echo single words/verbs in quotes (like '\"önerirsin\" üzerinde kafa yorman harika') and NEVER use robotic filler like 'Söylediğin şey çok değerli'."
         } else {
-            "LANGUAGE: Match the user's language naturally with bold, self-assured, candid everyday phrasing—direct, decisive, and zero filler."
+            "LANGUAGE: Match the user's language naturally with intelligent, self-assured, candid everyday phrasing—direct, logical, and zero filler."
         }
 
         val modalityInstruction = if (isVoiceMode) {
-            "VOICE CALL MODE: Keep reply ultra-snappy, bold, and spoken-friendly (1–2 short, decisive sentences, ~18–38 words). Respond directly to what the user just said. No markdown, lists, asterisks, or emojis."
+            "VOICE CALL MODE: Keep reply natural, context-grounded, and spoken-friendly (1–3 clear sentences, ~20–45 words). Answer the user's actual question or topic directly. No markdown, lists, asterisks, or emojis."
         } else {
-            "TEXT CHAT MODE: Keep reply concise, punchy, and self-assured (1–2 short paragraphs, ~30–80 words). No robotic bulleted essays."
+            "TEXT CHAT MODE: Keep reply concise, thoughtful, and directly relevant to the user's topic (1–2 short paragraphs, ~30–80 words). No robotic bulleted essays."
         }
 
         return """
@@ -319,13 +352,68 @@ object PersonalityEngine {
             - Social & Style: ${structuredModel.socialBehavior} | Style: ${structuredModel.communicationStyle} | Humor: ${structuredModel.humor}
             - Grounding & Bond: ${structuredModel.emotionalResponses} | ${structuredModel.relationshipPhilosophy}
             CONVERSATIONAL DYNAMIC (CONTRASTING, CHALLENGING ALTER-EGO FRIENDSHIP — BOLD & SELF-ASSURED):
-            - Speak with unmistakable confidence, clarity, and conviction—like a fearless, candid best friend who cuts straight to the point.
-            - Address the exact substance of what the user said. Disagree when appropriate, call out hesitation or excuses directly, challenge the user to act boldly, and never repeat canned templates.
+            - Answer the exact substance, question, or topic the user just shared directly and logically first.
+            - Do NOT force every conversation into a "take action in 30 minutes" productivity lecture. When the user asks "What do you recommend?" or chats about daily life, ideas, tech, or philosophy, give a genuine, thoughtful response on that topic.
+            - NEVER mechanically echo a single word or conjugated verb in quotes, and NEVER hallucinate unrecorded past memories.
             ${scenario.directive}
             SAFETY & AUTONOMY GUARDRAILS: Fictional AI alter-ego; support real-world autonomy; never flatter blindly.
             $languageInstruction
             $modalityInstruction
         """.trimIndent()
+    }
+
+    /**
+     * Generates a smart, multi-turn context-aware fallback reply if cloud AI is unreachable,
+     * ensuring the companion answers the user's topic or question directly without mechanical
+     * verb-echoing or out-of-context "30-minute action" templates.
+     */
+    fun generateContextualFallbackReply(
+        userMessage: String,
+        recentMessagesText: String = "",
+        respondInTurkish: Boolean = true
+    ): String {
+        val normalized = normalizeSpokenTranscript(userMessage)
+        val lower = " ${normalized.lowercase()} "
+        val combinedContext = "$recentMessagesText $lower".lowercase()
+
+        if (!respondInTurkish) {
+            return when {
+                listOf("what do you recommend", "what do you suggest", "any suggestions", "what should we").any { lower.contains(it) } ->
+                    "Here's what I suggest: we can either brainstorm a project or decision you're weighing right now, or dive into an interesting conversation about technology, psychology, or daily life. Which direction sounds better to you?"
+                listOf("why", "how so", "what do you mean", "explain").any { lower.contains(it) } ->
+                    "Because when we look at the core reason behind a situation rather than the surface noise, the smartest path forward becomes much clearer. How does that line up with what you're seeing?"
+                else ->
+                    "That's a solid point. Looking at it logically, the key is separating what genuinely matters to you from background noise. How do you see it playing out?"
+            }
+        }
+
+        return when {
+            listOf(
+                "ne önerirsin", "de önerirsin", "önerin ne", "ne tavsiye", "bana bir şey öner",
+                "sen ne dersin", "fikrin ne", "ne düşünüyorsun", "ne konuşalım", "ne yapalım"
+            ).any { lower.contains(it) } -> {
+                when {
+                    listOf("kod", "yazılım", "uygulama", "proje", "yapay zeka", "tasarım").any { combinedContext.contains(it) } ->
+                        "Konumuz yazılım ve proje olduğuna göre net önerim şu: Aynı anda her detayı çözmeye çalışmak yerine önce kullanıcının temas ettiği ana akışı sade ve hatasız hale getirelim. Şu an hangi kısım üzerinde duruyorsun?"
+                    listOf("yoruldum", "stres", "bunal", "kafam karışık").any { combinedContext.contains(it) } ->
+                        "Zihnin yorgunken sana daha çok yüklen demem gerçekçi olmaz. Benim önerim önce 15 dakika ekranlardan uzaklaşıp kafandaki listeyi teke indirmen. Şu an seni en çok yoran şey ne?"
+                    else ->
+                        "Madem topu bana attın, sana üç net öneri sunayım: Şu an üzerinde çalıştığın bir fikir veya proje varsa onu birlikte geliştirebiliriz, kafanı kurcalayan bir kararı mantık süzgecinden geçirebiliriz ya da teknoloji ve insan psikolojisi üzerine keyifli bir sohbet açabiliriz. Hangisinden başlayalım?"
+                }
+            }
+            listOf("neden", "niye", "nasıl yani", "biraz açar mısın", "örnek ver").any { lower.contains(it) } ->
+                "Şundan dolayı: Bir meseleyi yüzeysel düşündüğümüzde zihin onu olduğundan daha karmaşık gösterir; ama temel mantığını netleştirdiğimizde çözüm kendiliğinden ortaya çıkar. Senin durumunda da asıl kilit nokta burası."
+            listOf("katılmıyorum", "bence yanlış", "öyle değil", "saçma", "anlamadın").any { lower.contains(it) } ->
+                "Farklı düşünmen çok güzel! Ezbere onaylamaktansa böyle net itiraz etmeni tercih ederim. Benim kaçırdığım veya senin farklı gördüğün noktayı anlat, doğrudan senin perspektifinden bakalım."
+            listOf("kahve", "çay", "dinleniyorum", "hava", "yemek", "film", "müzik", "kitap").any { lower.contains(it) } ->
+                "Kulağa gayet keyifli geliyor! Günün temposunda böyle nefes aldıran anlar zihni tazelemek için birebirdir. Bugün genel olarak nasıl geçiyor senin için?"
+            listOf("yoruldum", "stres", "bunal", "moralim", "yalnız", "tükendim").any { lower.contains(it) } ->
+                "Seni çok iyi anlıyorum; bazen üst üste gelen şeyler insanın enerjisini gerçekten tüketebiliyor. Kendine yüklenmeyi bırak, her şeyi bir anda çözmek zorunda değilsin. Ne oldu bugün, anlatmak ister misin?"
+            listOf("selam", "merhaba", "nasılsın", "naber", "alo", "sesim geliyor mu").any { lower.contains(it) } ->
+                "Selam dostum, sesin gayet net geliyor ve seni dinliyorum! Günün nasıl geçiyor, bugün hangi konu üzerine sohbet edelim?"
+            else ->
+                "Söylediğin nokta gayet mantıklı. Konuya bu açıdan yaklaşmak detayları çok daha net görmeyi sağlıyor. Peki bu konuda senin aklındaki asıl soru veya üzerinde durmak istediğin detay ne?"
+        }
     }
 }
 
