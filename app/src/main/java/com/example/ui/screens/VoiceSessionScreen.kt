@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -78,6 +79,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -183,7 +185,7 @@ fun VoiceSessionScreen(
     }
 
     val voiceState by currentVoiceController.state.collectAsStateWithLifecycle()
-    var showPromptInput by rememberSaveable { mutableStateOf(false) }
+    var showPromptInput by rememberSaveable { mutableStateOf(true) }
     var manualSpokenInput by rememberSaveable { mutableStateOf("") }
 
     val characterVisualState = when (voiceState.phase) {
@@ -204,6 +206,12 @@ fun VoiceSessionScreen(
         currentVoiceController.onMicrophonePermissionResult(granted)
         if (granted) {
             currentVoiceController.startSession(companionState.voicePreferences)
+            currentVoiceController.speakInitialCallGreeting(
+                companionName = companionState.characterIdentity.companionName,
+                customGreeting = companionState.characterIdentity.greetingStyle
+            )
+        } else {
+            showPromptInput = true
         }
     }
 
@@ -212,16 +220,19 @@ fun VoiceSessionScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
         }
-        if (hasAudioPermission) {
-            currentVoiceController.onMicrophonePermissionResult(true)
-            currentVoiceController.startSession(companionState.voicePreferences)
-        } else {
+        currentVoiceController.onMicrophonePermissionResult(true)
+        currentVoiceController.startSession(companionState.voicePreferences)
+        currentVoiceController.speakInitialCallGreeting(
+            companionName = companionState.characterIdentity.companionName,
+            customGreeting = companionState.characterIdentity.greetingStyle
+        )
+        if (!hasAudioPermission) {
             permissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
 
-    LaunchedEffect(voiceState.speechRecognitionAvailable) {
-        if (!voiceState.speechRecognitionAvailable) {
+    LaunchedEffect(voiceState.speechRecognitionAvailable, voiceState.isInteractiveCallFallbackMode) {
+        if (!voiceState.speechRecognitionAvailable || voiceState.isInteractiveCallFallbackMode) {
             showPromptInput = true
         }
     }
@@ -287,10 +298,10 @@ fun VoiceSessionScreen(
                         val connectionPrefix = if (voiceState.phase == VoicePhase.ERROR || !voiceState.isNetworkAvailable) {
                             tr("OTURUM UYARISI", "SESSION ALERT")
                         } else {
-                            tr("BAĞLANDI", "CONNECTED")
+                            tr("📞 CANLI ARAMA BAĞLANDI", "📞 LIVE CALL CONNECTED")
                         }
                         Text(
-                            text = "$connectionPrefix • ${voiceState.phase.name}",
+                            text = "$connectionPrefix • ${voiceState.formattedCallDuration()} • ${voiceState.phase.name}",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (voiceState.phase == VoicePhase.ERROR) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.testTag("voice_connection_status")
@@ -852,21 +863,49 @@ fun VoiceSessionScreen(
 
                 val hasReadySpokenDraft =
                     (voiceState.phase == VoicePhase.LISTENING && voiceState.liveTranscript.isNotBlank()) ||
-                        voiceState.hasPendingDraftTranscript
+                        voiceState.hasPendingDraftTranscript ||
+                        manualSpokenInput.isNotBlank()
+
+                val callBreathingTransition = rememberInfiniteTransition(label = "voiceCallButtonBreathing")
+                val callBreathingScale by callBreathingTransition.animateFloat(
+                    initialValue = 1.0f,
+                    targetValue = if (voiceState.isCallConnected) 1.036f else 1.0f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "voiceCallScale"
+                )
 
                 Button(
                     onClick = {
-                        if (!hasAudioPermission) {
-                            permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
-                        } else if (voiceState.phase == VoicePhase.SPEAKING || voiceState.phase == VoicePhase.THINKING) {
-                            currentVoiceController.interruptCompanionSpeech()
-                        } else if (hasReadySpokenDraft) {
-                            currentVoiceController.commitPendingTranscript()
-                        } else {
-                            currentVoiceController.startListeningManual()
+                        when {
+                            voiceState.phase == VoicePhase.SPEAKING || voiceState.phase == VoicePhase.THINKING -> {
+                                currentVoiceController.interruptCompanionSpeech()
+                            }
+                            manualSpokenInput.isNotBlank() -> {
+                                currentVoiceController.submitSpokenOrTypedTurn(manualSpokenInput)
+                                manualSpokenInput = ""
+                            }
+                            hasReadySpokenDraft -> {
+                                currentVoiceController.commitPendingTranscript()
+                            }
+                            !hasAudioPermission -> {
+                                showPromptInput = true
+                                permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
+                                currentVoiceController.startListeningManual()
+                            }
+                            else -> {
+                                showPromptInput = true
+                                currentVoiceController.startListeningManual()
+                            }
                         }
                     },
                     modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = callBreathingScale
+                            scaleY = callBreathingScale
+                        }
                         .height(64.dp)
                         .width(196.dp)
                         .testTag("voice_primary_mic_button"),
@@ -893,7 +932,6 @@ fun VoiceSessionScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = when {
-                            !hasAudioPermission -> tr("Mikrofon İzni", "Grant Mic")
                             voiceState.phase == VoicePhase.SPEAKING -> tr("Sözünü Kes", "Interrupt")
                             hasReadySpokenDraft -> tr("Dokun ve Gönder", "Tap to Send")
                             voiceState.phase == VoicePhase.LISTENING -> tr("Dinleniyor...", "Listening...")

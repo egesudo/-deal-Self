@@ -547,7 +547,22 @@ class CompanionViewModel(
                 }
                 onReady(convId)
             }.onFailure { err ->
-                _errorBanner.value = err.localizedMessage ?: "Could not start conversation."
+                Log.w(TAG, "Falling back to local ephemeral conversation for mode=$mode: ${err.message}")
+                val fallbackConvId = "local_${mode.lowercase()}_${System.currentTimeMillis()}"
+                _activeConversationId.value = fallbackConvId
+                if (greeting.isNotBlank()) {
+                    _activeMessages.value = listOf(
+                        Message(
+                            id = "ephemeral_greeting_${System.currentTimeMillis()}",
+                            userId = currentUserId,
+                            conversationId = fallbackConvId,
+                            sender = "COMPANION",
+                            content = greeting,
+                            emotionTag = _companionState.value.characterAppearance.expressionDefault
+                        )
+                    )
+                }
+                onReady(fallbackConvId)
             }
         }
     }

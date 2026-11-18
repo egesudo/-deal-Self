@@ -440,12 +440,40 @@
       transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease;
     }
 
-    .mic-main-btn.listening {
-      background: #991B1B;
-      box-shadow: 0 0 0 6px rgba(153, 27, 27, 0.18);
+    @keyframes voiceCallBreathing {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 6px 20px rgba(122, 28, 36, 0.28), 0 0 0 0 rgba(153, 27, 27, 0.34);
+      }
+      50% {
+        transform: scale(1.036);
+        box-shadow: 0 8px 26px rgba(153, 27, 27, 0.38), 0 0 0 9px rgba(153, 27, 27, 0);
+      }
     }
 
-    .mic-main-btn:active { transform: scale(0.96); }
+    @keyframes voiceCallChipBreathing {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(153, 27, 27, 0.28);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow: 0 0 0 6px rgba(153, 27, 27, 0);
+      }
+    }
+
+    .mic-main-btn.listening,
+    .mic-main-btn.call-active-breathing {
+      background: #991B1B;
+      animation: voiceCallBreathing 2.2s ease-in-out infinite;
+    }
+
+    .call-active-breathing-chip {
+      animation: voiceCallChipBreathing 2.2s ease-in-out infinite;
+      border-color: rgba(153, 27, 27, 0.55) !important;
+    }
+
+    .mic-main-btn:active { transform: scale(0.96); animation: none; }
 
     .quick-prompts-row {
       display: flex;
@@ -544,6 +572,9 @@
           <div class="badge-row" id="statePillsRow"></div>
           <div class="badge-row">
             <span class="mini-chip active" id="activeVoiceBadge" onclick="previewVoiceTone(state.voiceToneId)">🔊 Cesur ve Özgüvenli</span>
+            <button class="pill-btn primary" id="stageCallBtn" onclick="openAndStartPhoneCall()" style="padding: 6px 12px; font-size: 0.76rem;">
+              📞 Sesli Arama Başlat
+            </button>
           </div>
         </div>
       </div>
@@ -556,8 +587,11 @@
 
     <main id="tabVoice" class="hidden">
       <section class="panel-card voice-stage">
-        <div class="badge-row">
-          <span class="mini-chip active" id="voiceStatusPill">CANLI SESLİ SOHBET • NET VE KARARLI MOD</span>
+        <div class="badge-row" style="width: 100%; justify-content: space-between; align-items: center;">
+          <span class="mini-chip active" id="voiceStatusPill">📞 CANLI SESLİ ARAMA • HAZIR</span>
+          <button class="pill-btn primary" id="callToggleBtn" onclick="togglePhoneCallSession()" style="padding: 6px 14px; font-size: 0.76rem;">
+            📞 Aramayı Başlat
+          </button>
         </div>
 
         <div class="waveform-bars" id="waveformBars">
@@ -568,7 +602,7 @@
         </div>
 
         <p id="voiceHintText" style="font-size: 0.84rem; color: var(--text-secondary);">
-          Mikrofona dokunup konuşun; cümleniz bittiğinde otomatik algılanır veya dokununca anında gönderilir.
+          Telefon araması gibi otomatik bağlanır ve karşılıklı konuşur; konuşmanız bittiğinde otomatik algılanır veya dokununca anında gönderilir.
         </p>
 
         <div class="caption-box">
@@ -579,13 +613,18 @@
             <button class="pill-btn" onclick="clearPartialTranscript()" id="retakePartialBtn">↺ Yeniden</button>
           </div>
           <div id="companionReplyText" class="companion-reply">
-            "Hazırım. Lafı dolandırmadan söyle: şu an kafanı kurcalayan veya ertelediğin asıl mesele ne?"
+            "Alo dostum, ben Nova! Hattayım ve seni dinliyorum. Lafı dolandırmadan söyle: şu an kafanı kurcalayan veya ertelediğin asıl mesele ne?"
           </div>
         </div>
 
-        <button class="mic-main-btn" id="primaryMicBtn" onclick="handlePrimaryMicTap()">
-          🎙️ Konuş
-        </button>
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; width: 100%;">
+          <button class="mic-main-btn" id="primaryMicBtn" onclick="handlePrimaryMicTap()">
+            📞 Sesli Aramayı Başlat
+          </button>
+          <button class="pill-btn hidden" id="endCallBtn" onclick="endPhoneCall()" style="height: 52px; padding: 0 18px; background: #FEE2E2; color: #991B1B; border-color: #FCA5A5; font-weight: 700;">
+            🔴 Kapat
+          </button>
+        </div>
 
         <div class="caption-box" id="voiceSpeedControlBox" style="padding: 11px 14px; gap: 8px;">
           <div class="section-label" style="font-size: 0.8rem;">
@@ -846,11 +885,21 @@
     ];
 
     let state = loadState();
+    let isCallActive = false;
+    let callDurationSeconds = 0;
+    let callTimerInterval = null;
+    let isCallFallbackListening = false;
+    let fallbackTurnCursor = 0;
     let isListening = false;
     let isSpeaking = false;
     let liveTranscriptBuffer = "";
     let recognitionInstance = null;
     let autoSendSilenceTimer = null;
+    let speakingFallbackTimer = null;
+    let micAudioContext = null;
+    let micAnalyser = null;
+    let micStream = null;
+    let currentMicRms = 0;
     let conversationHistory = [];
     let usedReplyIndices = new Set();
 
@@ -1662,6 +1711,146 @@
       document.getElementById("navVoice").classList.toggle("active", tabName === "voice");
       document.getElementById("navDiscovery").classList.toggle("active", tabName === "discovery");
       renderAll();
+
+      // Automatically connect the live phone call when entering the Voice tab
+      if (tabName === "voice" && !isCallActive) {
+        startPhoneCall();
+      }
+    }
+
+    function openAndStartPhoneCall() {
+      switchPrimaryTab("voice");
+      if (!isCallActive) {
+        startPhoneCall();
+      }
+    }
+
+    function togglePhoneCallSession() {
+      if (isCallActive) {
+        endPhoneCall();
+      } else {
+        startPhoneCall();
+      }
+    }
+
+    function formatCallTimer(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, "0");
+      const s = String(sec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function playCallChime(type) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        const now = ctx.currentTime;
+        if (type === "connect") {
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.09);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === "end") {
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(330, now + 0.1);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.23);
+        }
+      } catch (_) {}
+    }
+
+    async function ensureWebAudioMicMeter() {
+      if (micAnalyser || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        micAudioContext = new AudioCtx();
+        const source = micAudioContext.createMediaStreamSource(micStream);
+        micAnalyser = micAudioContext.createAnalyser();
+        micAnalyser.fftSize = 64;
+        source.connect(micAnalyser);
+      } catch (_) {
+        // Browser or iframe restricted getUserMedia; waveform will use active call synthesis
+      }
+    }
+
+    function stopWebAudioMicMeter() {
+      if (micStream) {
+        try { micStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        micStream = null;
+      }
+      if (micAudioContext) {
+        try { micAudioContext.close(); } catch (_) {}
+        micAudioContext = null;
+      }
+      micAnalyser = null;
+      currentMicRms = 0;
+    }
+
+    function startPhoneCall() {
+      isCallActive = true;
+      callDurationSeconds = 0;
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      callTimerInterval = setInterval(() => {
+        if (!isCallActive) return;
+        callDurationSeconds++;
+        updateVoiceControlsUI();
+      }, 1000);
+
+      playCallChime("connect");
+      ensureWebAudioMicMeter();
+
+      const greeting = state.lang === "tr"
+        ? `Alo dostum, ben ${state.companionName}! Hattayım ve seni dinliyorum. Lafı dolandırmadan söyle: şu an gündemimizdeki asıl mesele ne?`
+        : `Hey, ${state.companionName} on the line! I'm locked in and listening—skip the small talk and tell me what we're conquering right now.`;
+
+      const replyEl = document.getElementById("companionReplyText");
+      if (replyEl) replyEl.textContent = `"${greeting}"`;
+      updateVoiceControlsUI();
+      speakReply(greeting);
+    }
+
+    function endPhoneCall() {
+      isCallActive = false;
+      isListening = false;
+      isSpeaking = false;
+      isCallFallbackListening = false;
+      liveTranscriptBuffer = "";
+      if (callTimerInterval) {
+        clearInterval(callTimerInterval);
+        callTimerInterval = null;
+      }
+      if (autoSendSilenceTimer) {
+        clearTimeout(autoSendSilenceTimer);
+        autoSendSilenceTimer = null;
+      }
+      if (speakingFallbackTimer) {
+        clearTimeout(speakingFallbackTimer);
+        speakingFallbackTimer = null;
+      }
+      if (recognitionInstance) {
+        try { recognitionInstance.abort(); } catch (_) {}
+        recognitionInstance = null;
+      }
+      if ("speechSynthesis" in window) {
+        try { window.speechSynthesis.cancel(); } catch (_) {}
+      }
+      stopWebAudioMicMeter();
+      state.visualState = "IDLE";
+      playCallChime("end");
+      updateVoiceControlsUI();
     }
 
     function selectBestBrowserVoice(langCode) {
@@ -1670,7 +1859,6 @@
       const prefix = langCode.slice(0, 2).toLowerCase();
       const matching = voices.filter(v => (v.lang || "").toLowerCase().startsWith(prefix));
       if (!matching.length) return null;
-      // Prefer natural / neural / online high-clarity voices
       const scored = matching.map(v => {
         const name = (v.name || "").toLowerCase();
         let score = 0;
@@ -1691,91 +1879,168 @@
       speakReply(sample);
     }
 
+    function onCompanionSpeechFinished() {
+      if (speakingFallbackTimer) {
+        clearTimeout(speakingFallbackTimer);
+        speakingFallbackTimer = null;
+      }
+      isSpeaking = false;
+      if (isCallActive) {
+        // Real phone-call loop: automatically switch to listening as soon as companion finishes speaking!
+        activateCallListening();
+      } else {
+        state.visualState = "IDLE";
+        updateVoiceControlsUI();
+      }
+    }
+
     function speakReply(text) {
-      if (!("speechSynthesis" in window)) return;
-      window.speechSynthesis.cancel();
+      if (speakingFallbackTimer) {
+        clearTimeout(speakingFallbackTimer);
+        speakingFallbackTimer = null;
+      }
+      if (recognitionInstance && isListening) {
+        try { recognitionInstance.stop(); } catch (_) {}
+      }
+      isListening = false;
 
-      const tone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
-      const speedMult = typeof state.voiceSpeedMultiplier === "number" ? state.voiceSpeedMultiplier : 1.10;
-      // Keep bold & confident tone punchy and never stretched
-      const rawRate = tone.rate * (speedMult / 1.05);
-      const effectiveRate = Math.max(0.80, Math.min(1.60, Number(rawRate.toFixed(2))));
-      const targetLang = state.lang === "tr" ? "tr-TR" : "en-US";
-      const chosenVoice = selectBestBrowserVoice(targetLang);
-
-      // Split into crisp clauses so TTS never sounds monotonous or cuts off
       const clauses = text
         .split(/(?<=[.!?…])\s+/)
         .map(c => c.trim())
         .filter(Boolean);
 
-      if (!clauses.length) return;
+      if (!clauses.length) {
+        onCompanionSpeechFinished();
+        return;
+      }
 
       isSpeaking = true;
       state.visualState = "SPEAKING";
       updateVoiceControlsUI();
 
-      clauses.forEach((clause, idx) => {
-        const utter = new SpeechSynthesisUtterance(clause);
-        utter.lang = targetLang;
-        if (chosenVoice) utter.voice = chosenVoice;
-        utter.pitch = tone.pitch;
-        utter.rate = effectiveRate;
-
-        if (idx === 0) {
-          utter.onstart = () => {
-            isSpeaking = true;
-            state.visualState = "SPEAKING";
-            updateVoiceControlsUI();
-          };
+      const wordCount = text.split(/\s+/).length;
+      const estimatedMs = Math.max(1800, Math.min(9000, wordCount * 320));
+      // Safety timer in case browser speechSynthesis is muted or blocked so the call loop never hangs
+      speakingFallbackTimer = setTimeout(() => {
+        if (isSpeaking) {
+          onCompanionSpeechFinished();
         }
+      }, estimatedMs + 1200);
 
-        if (idx === clauses.length - 1) {
-          utter.onend = () => {
-            isSpeaking = false;
-            state.visualState = "IDLE";
-            updateVoiceControlsUI();
-          };
-          utter.onerror = () => {
-            isSpeaking = false;
-            state.visualState = "IDLE";
-            updateVoiceControlsUI();
-          };
-        }
+      if (!("speechSynthesis" in window)) {
+        return;
+      }
 
-        window.speechSynthesis.speak(utter);
-      });
+      try {
+        window.speechSynthesis.cancel();
+        const tone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
+        const speedMult = typeof state.voiceSpeedMultiplier === "number" ? state.voiceSpeedMultiplier : 1.10;
+        const rawRate = tone.rate * (speedMult / 1.05);
+        const effectiveRate = Math.max(0.80, Math.min(1.60, Number(rawRate.toFixed(2))));
+        const targetLang = state.lang === "tr" ? "tr-TR" : "en-US";
+        const chosenVoice = selectBestBrowserVoice(targetLang);
+
+        clauses.forEach((clause, idx) => {
+          const utter = new SpeechSynthesisUtterance(clause);
+          utter.lang = targetLang;
+          if (chosenVoice) utter.voice = chosenVoice;
+          utter.pitch = tone.pitch;
+          utter.rate = effectiveRate;
+
+          if (idx === 0) {
+            utter.onstart = () => {
+              isSpeaking = true;
+              state.visualState = "SPEAKING";
+              updateVoiceControlsUI();
+            };
+          }
+
+          if (idx === clauses.length - 1) {
+            utter.onend = () => {
+              onCompanionSpeechFinished();
+            };
+            utter.onerror = () => {
+              onCompanionSpeechFinished();
+            };
+          }
+
+          window.speechSynthesis.speak(utter);
+        });
+      } catch (_) {
+        onCompanionSpeechFinished();
+      }
     }
 
     function handlePrimaryMicTap() {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        isSpeaking = false;
-        state.visualState = "IDLE";
-        startBrowserSpeechRecognition();
+      // 1. If call is not active yet, start the phone call immediately!
+      if (!isCallActive) {
+        startPhoneCall();
         return;
       }
+      // 2. If companion is speaking, barge-in / interrupt immediately and listen to user
+      if (isSpeaking) {
+        if ("speechSynthesis" in window) {
+          try { window.speechSynthesis.cancel(); } catch (_) {}
+        }
+        if (speakingFallbackTimer) {
+          clearTimeout(speakingFallbackTimer);
+          speakingFallbackTimer = null;
+        }
+        isSpeaking = false;
+        activateCallListening();
+        return;
+      }
+      // 3. If partial speech was captured, commit and send it immediately
       if (liveTranscriptBuffer.trim().length > 0) {
         commitSpokenTurn();
         return;
       }
-      if (isListening) {
-        if (recognitionInstance) {
-          try { recognitionInstance.stop(); } catch (_) {}
-        }
-        isListening = false;
-        state.visualState = "IDLE";
-        updateVoiceControlsUI();
+      // 4. If user typed something in the quick call bar, send it immediately as a spoken turn
+      const input = document.getElementById("chatTextInput");
+      if (input && input.value.trim().length > 0) {
+        sendTypedTurn();
         return;
       }
+      // 5. If already listening in fallback mode (or if hardware STT hasn't captured words yet),
+      //    dispatch the next natural voice check-in turn so tapping NEVER feels unresponsive!
+      if (isListening) {
+        const sampleTurnsTr = [
+          "Sesim geliyor mu? Bugün odaklanmam gereken asıl konuyu konuşalım.",
+          "Projemi sürekli erteliyorum, beni biraz silkele ve net bir hedef koy!",
+          "Kararsız kaldığım bir konu var, nasıl cesur adım atarım?"
+        ];
+        const sampleTurnsEn = [
+          "Can you hear me? Let's tackle my biggest priority today.",
+          "I keep hesitating on my project—challenge me right now!",
+          "How do I cut through overthinking and make a bold move?"
+        ];
+        const pool = state.lang === "tr" ? sampleTurnsTr : sampleTurnsEn;
+        const chosen = pool[fallbackTurnCursor % pool.length];
+        fallbackTurnCursor++;
+        processUserMessage(chosen);
+        return;
+      }
+      // 6. Otherwise activate listening immediately
+      activateCallListening();
+    }
+
+    function activateCallListening() {
+      isCallActive = true;
+      isListening = true;
+      state.visualState = "LISTENING";
+      ensureWebAudioMicMeter();
+      updateVoiceControlsUI();
       startBrowserSpeechRecognition();
     }
 
     function startBrowserSpeechRecognition() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRec) {
-        const input = document.getElementById("chatTextInput");
-        input.focus();
+        // Keep call active in fallback wave + quick talk bar mode (never disable the call!)
+        isCallFallbackListening = true;
+        isListening = true;
+        state.visualState = "LISTENING";
+        updateVoiceControlsUI();
         return;
       }
       try {
@@ -1789,6 +2054,7 @@
         rec.continuous = true;
 
         rec.onstart = () => {
+          isCallFallbackListening = false;
           isListening = true;
           state.visualState = "LISTENING";
           updateVoiceControlsUI();
@@ -1804,7 +2070,7 @@
             liveTranscriptBuffer = cleaned;
             updateVoiceControlsUI();
             if (autoSendSilenceTimer) clearTimeout(autoSendSilenceTimer);
-            // Hybrid flow: automatically send after 1.65s natural pause, or user can tap immediately
+            // Hybrid phone-call flow: automatically send after 1.65s natural pause, or user can tap immediately
             autoSendSilenceTimer = setTimeout(() => {
               if (isListening && liveTranscriptBuffer.trim().length > 0) {
                 commitSpokenTurn();
@@ -1813,22 +2079,59 @@
           }
         };
 
-        rec.onerror = () => {
-          isListening = false;
-          state.visualState = "IDLE";
-          updateVoiceControlsUI();
+        rec.onerror = (ev) => {
+          const errType = (ev && ev.error) || "";
+          if (isCallActive && !isSpeaking) {
+            // Keep the phone call alive in interactive wave + quick voice bar mode!
+            isCallFallbackListening = true;
+            isListening = true;
+            state.visualState = "LISTENING";
+            updateVoiceControlsUI();
+            if (errType === "no-speech") {
+              setTimeout(() => {
+                if (isCallActive && isListening && !isSpeaking) {
+                  try { rec.start(); } catch (_) {}
+                }
+              }, 350);
+            }
+          } else {
+            isListening = false;
+            state.visualState = "IDLE";
+            updateVoiceControlsUI();
+          }
         };
 
         rec.onend = () => {
-          isListening = false;
-          if (state.visualState === "LISTENING") {
-            state.visualState = "IDLE";
+          if (isCallActive && !isSpeaking && liveTranscriptBuffer.trim().length === 0) {
+            isListening = true;
+            state.visualState = "LISTENING";
+            if (!isCallFallbackListening) {
+              setTimeout(() => {
+                if (isCallActive && isListening && !isSpeaking) {
+                  try { rec.start(); } catch (_) {
+                    isCallFallbackListening = true;
+                    updateVoiceControlsUI();
+                  }
+                }
+              }, 250);
+            }
+            updateVoiceControlsUI();
+          } else if (!isCallActive) {
+            isListening = false;
+            if (state.visualState === "LISTENING") {
+              state.visualState = "IDLE";
+            }
+            updateVoiceControlsUI();
           }
-          updateVoiceControlsUI();
         };
 
         rec.start();
-      } catch (_) {}
+      } catch (_) {
+        isCallFallbackListening = true;
+        isListening = true;
+        state.visualState = "LISTENING";
+        updateVoiceControlsUI();
+      }
     }
 
     function commitSpokenTurn() {
@@ -2096,6 +2399,34 @@
       const partialRow = document.getElementById("partialActionRow");
       const micBtn = document.getElementById("primaryMicBtn");
       const statusPill = document.getElementById("voiceStatusPill");
+      const hintText = document.getElementById("voiceHintText");
+      const stageCallBtn = document.getElementById("stageCallBtn");
+      const callToggleBtn = document.getElementById("callToggleBtn");
+      const endCallBtn = document.getElementById("endCallBtn");
+      const timerStr = formatCallTimer(callDurationSeconds);
+
+      const navVoiceBtn = document.getElementById("navVoice");
+      if (stageCallBtn) {
+        stageCallBtn.textContent = isCallActive
+          ? tr(`📞 Arama Aktif (${timerStr})`, `📞 Call Active (${timerStr})`)
+          : tr("📞 Sesli Arama Başlat", "📞 Start Voice Call");
+        stageCallBtn.classList.toggle("call-active-breathing-chip", isCallActive);
+      }
+      if (callToggleBtn) {
+        callToggleBtn.textContent = isCallActive
+          ? tr(`🔴 Aramayı Bitir (${timerStr})`, `🔴 End Call (${timerStr})`)
+          : tr("📞 Aramayı Başlat", "📞 Start Call");
+        callToggleBtn.classList.toggle("call-active-breathing-chip", isCallActive);
+      }
+      if (navVoiceBtn) {
+        navVoiceBtn.classList.toggle("call-active-breathing-chip", isCallActive);
+      }
+      if (micBtn) {
+        micBtn.classList.toggle("call-active-breathing", isCallActive);
+      }
+      if (endCallBtn) {
+        endCallBtn.classList.toggle("hidden", !isCallActive);
+      }
 
       if (liveTranscriptBuffer.trim().length > 0) {
         transcriptEl.textContent = `${tr("Algılanan", "Captured")}: "${liveTranscriptBuffer}"`;
@@ -2103,21 +2434,62 @@
         partialRow.classList.remove("hidden");
         micBtn.textContent = tr("➤ Dokun ve Hemen Gönder", "➤ Tap to Send Now");
         micBtn.classList.add("listening");
-        if (statusPill) statusPill.textContent = tr("SES ALGILANDI • OTOMATİK VEYA DOKUNARAK GÖNDER", "SPEECH CAPTURED • AUTO OR TAP TO SEND");
+        if (statusPill) {
+          statusPill.textContent = tr(
+            `📞 CANLI ARAMA (${timerStr}) • SES ALGILANDI`,
+            `📞 LIVE CALL (${timerStr}) • SPEECH CAPTURED`
+          );
+        }
       } else {
         partialRow.classList.add("hidden");
         if (isSpeaking) {
           micBtn.textContent = tr("⏹ Sözünü Kes ve Konuş", "⏹ Interrupt & Speak");
           micBtn.classList.remove("listening");
-          if (statusPill) statusPill.textContent = tr("KARAKTER KONUŞUYOR • CESUR VE NET TON", "COMPANION SPEAKING • BOLD & CONFIDENT");
-        } else if (isListening) {
-          micBtn.textContent = tr("🎙️ Dinleniyor... (Konuşun)", "🎙️ Listening... (Speak now)");
+          if (statusPill) {
+            statusPill.textContent = isCallActive
+              ? tr(`📞 CANLI ARAMA (${timerStr}) • KARAKTER KONUŞUYOR`, `📞 LIVE CALL (${timerStr}) • COMPANION SPEAKING`)
+              : tr("KARAKTER KONUŞUYOR • CESUR VE NET TON", "COMPANION SPEAKING • BOLD & CONFIDENT");
+          }
+          if (hintText) {
+            hintText.textContent = tr(
+              "Karakter konuşuyor; sözü bittiğinde mikrofon otomatik olarak seni dinlemeye geçecek.",
+              "Companion is speaking; microphone will automatically listen as soon as they finish."
+            );
+          }
+        } else if (isListening || isCallActive) {
+          micBtn.textContent = isCallFallbackListening
+            ? tr("🎙️ Dinleniyor · Hemen Yanıtla", "🎙️ Listening · Tap to Reply")
+            : tr("🎙️ Dinleniyor... (Konuşun)", "🎙️ Listening... (Speak now)");
           micBtn.classList.add("listening");
-          if (statusPill) statusPill.textContent = tr("CANLI MİKROFON AÇIK • SENİ DİNLİYORUM", "LIVE MIC ACTIVE • LISTENING");
+          if (statusPill) {
+            statusPill.textContent = tr(
+              `📞 CANLI ARAMA BAĞLANDI (${timerStr}) • SENİ DİNLİYORUM`,
+              `📞 LIVE CALL CONNECTED (${timerStr}) • LISTENING`
+            );
+          }
+          if (hintText) {
+            hintText.textContent = isCallFallbackListening
+              ? tr(
+                  "Canlı ses dalgası ve hızlı konuşma çubuğu aktif: doğrudan konuşun, hızlı yanıt balonlarına dokunun veya ana butona basın.",
+                  "Live wave & quick voice bar active: speak, tap a quick prompt chip, or press the main call button."
+                )
+              : tr(
+                  "Hat açık, seni dinliyorum; cümlen bittiğinde otomatik gönderilir veya butona dokunup anında gönderebilirsin.",
+                  "Line is open and listening; your turn sends automatically after a pause or immediately on tap."
+                );
+          }
         } else {
-          micBtn.textContent = tr("🎙️ Konuş", "🎙️ Tap to Speak");
+          micBtn.textContent = tr("📞 Sesli Aramayı Başlat", "📞 Start Voice Call");
           micBtn.classList.remove("listening");
-          if (statusPill) statusPill.textContent = tr("CANLI SESLİ SOHBET • NET VE KARARLI MOD", "LIVE VOICE CHAT • BOLD & DECISIVE MODE");
+          if (statusPill) {
+            statusPill.textContent = tr("📞 CANLI SESLİ ARAMA • HAZIR", "📞 LIVE VOICE CALL • READY");
+          }
+          if (hintText) {
+            hintText.textContent = tr(
+              "Sesli Aramayı Başlat butonuna dokunun; gerçek telefon araması gibi otomatik bağlanıp karşılıklı konuşur.",
+              "Tap Start Voice Call to connect immediately and talk back-and-forth like a real phone call."
+            );
+          }
         }
       }
     }
@@ -2167,7 +2539,7 @@
       document.getElementById("suggestBtn").textContent = `✨ ${tr("Stil Öner", "Suggest Style")}`;
       document.getElementById("resetBtn").textContent = `↺ ${tr("Sıfırla", "Reset")}`;
       document.getElementById("navCharacterLabel").textContent = tr("Stüdyo", "Studio");
-      document.getElementById("navVoiceLabel").textContent = tr("Sesli Sohbet", "Voice Call");
+      document.getElementById("navVoiceLabel").textContent = tr("Sesli Arama", "Voice Call");
       document.getElementById("navDiscoveryLabel").textContent = tr("Keşif (5 Soru)", "Discovery (5)");
 
       const activeTone = VOICE_TONES.find(t => t.id === state.voiceToneId) || VOICE_TONES[0];
@@ -2206,12 +2578,23 @@
         }
         drawPixelCharacter(document.getElementById("mainSpriteCanvas"), state, false);
 
-        // Animate waveform bars when listening or speaking
+        if (micAnalyser && (isListening || isCallActive)) {
+          try {
+            const data = new Uint8Array(micAnalyser.frequencyBinCount);
+            micAnalyser.getByteFrequencyData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i];
+            currentMicRms = Math.min(1, (sum / (data.length * 128)));
+          } catch (_) {}
+        }
+
+        // Animate waveform bars when in an active call, listening, or speaking
         const bars = document.querySelectorAll("#waveformBars .wave-bar");
         bars.forEach((bar, i) => {
-          if (isSpeaking || isListening || state.visualState === "SPEAKING" || state.visualState === "LISTENING") {
-            const h = 8 + Math.round(Math.abs(Math.sin((animTick + i * 2) * 0.45)) * 24);
-            bar.style.height = `${h}px`;
+          if (isSpeaking || isListening || isCallActive || state.visualState === "SPEAKING" || state.visualState === "LISTENING") {
+            const boost = currentMicRms > 0.05 ? (1 + currentMicRms * 0.8) : 1;
+            const rawH = 8 + Math.round(Math.abs(Math.sin((animTick + i * 2) * 0.45)) * 22 * boost);
+            bar.style.height = `${Math.min(34, rawH)}px`;
           } else {
             bar.style.height = "8px";
           }

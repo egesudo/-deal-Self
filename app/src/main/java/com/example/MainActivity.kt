@@ -407,20 +407,18 @@ fun AuthenticatedCompanionShell(
                                         visualState = visualState,
                                         onTriggerReaction = { viewModel.triggerReaction() },
                                         onStartVoiceSession = {
+                                            activeOverlay = ActiveOverlay.VOICE_SESSION
                                             viewModel.openOrCreateConversation(
                                                 existingConversationId = null,
                                                 mode = "VOICE"
-                                            ) {
-                                                activeOverlay = ActiveOverlay.VOICE_SESSION
-                                            }
+                                            )
                                         },
                                         onStartNewTextChat = {
+                                            activeOverlay = ActiveOverlay.TEXT_CONVERSATION
                                             viewModel.openOrCreateConversation(
                                                 existingConversationId = null,
                                                 mode = "TEXT"
-                                            ) {
-                                                activeOverlay = ActiveOverlay.TEXT_CONVERSATION
-                                            }
+                                            )
                                         },
                                         onOpenConversation = { conv ->
                                             viewModel.selectConversation(conv.id)

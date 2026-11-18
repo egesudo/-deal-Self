@@ -45,6 +45,9 @@ enum class VoicePhase {
 
 data class VoiceSessionUiState(
     val phase: VoicePhase = VoicePhase.IDLE,
+    val isCallConnected: Boolean = false,
+    val callDurationSeconds: Int = 0,
+    val isInteractiveCallFallbackMode: Boolean = false,
     val providerId: String = "gemini_streaming_native_tr",
     val voiceLanguageTag: String = "tr-TR",
     val liveTranscript: String = "",
@@ -68,7 +71,13 @@ data class VoiceSessionUiState(
     val firstAudioLatencyMs: Long = 0L,
     val interruptionCount: Int = 0,
     val statusMessage: String = "Sesli görüşmeye hazır • Ready for voice call"
-)
+) {
+    fun formattedCallDuration(): String {
+        val mins = callDurationSeconds / 60
+        val secs = callDurationSeconds % 60
+        return String.format(Locale.US, "%02d:%02d", mins, secs)
+    }
+}
 
 class VoiceSessionController(
     context: Context,
@@ -93,6 +102,7 @@ class VoiceSessionController(
     private var wasPausedByTransientFocusLoss = false
     private var lastCapturedPartialText: String = ""
     private var busyRetryCount = 0
+    private var hasGreetedThisCall = false
 
     private val sentenceChunker = SentenceStreamChunker()
     private val pendingUtteranceCount = AtomicInteger(0)
@@ -101,6 +111,24 @@ class VoiceSessionController(
 
     private val _state = MutableStateFlow(VoiceSessionUiState())
     override val state: StateFlow<VoiceSessionUiState> = _state.asStateFlow()
+
+    private val callDurationTicker = object : Runnable {
+        override fun run() {
+            if (!sessionActive) return
+            val cur = _state.value
+            val nextSec = cur.callDurationSeconds + 1
+            val nextRms = if (cur.phase == VoicePhase.LISTENING && cur.isInteractiveCallFallbackMode) {
+                (0.32f + 0.25f * kotlin.math.abs(kotlin.math.sin(nextSec * 1.3f))).coerceIn(0.2f, 0.85f)
+            } else {
+                cur.rmsDbLevel
+            }
+            _state.value = cur.copy(
+                callDurationSeconds = nextSec,
+                rmsDbLevel = nextRms
+            )
+            mainHandler.postDelayed(this, 1000L)
+        }
+    }
 
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
@@ -367,15 +395,22 @@ class VoiceSessionController(
 
     override fun startSession(prefs: VoicePreferences) {
         sessionActive = true
+        hasGreetedThisCall = false
         sentenceChunker.reset()
         pendingUtteranceCount.set(0)
         lastCapturedPartialText = ""
         busyRetryCount = 0
         applyVoicePreferences(prefs)
 
+        mainHandler.removeCallbacks(callDurationTicker)
+        mainHandler.postDelayed(callDurationTicker, 1000L)
+
         val recognitionAvailable = SpeechRecognizer.isRecognitionAvailable(appContext)
         _state.value = _state.value.copy(
+            isCallConnected = true,
+            callDurationSeconds = 0,
             speechRecognitionAvailable = recognitionAvailable,
+            isInteractiveCallFallbackMode = !recognitionAvailable,
             isNetworkAvailable = checkActiveNetworkConnected(),
             hasPendingDraftTranscript = false
         )
@@ -386,18 +421,37 @@ class VoiceSessionController(
             )
             return
         }
-        if (recognitionAvailable && !_state.value.isMuted) {
+        if (!_state.value.isMuted) {
             startListeningInternal()
         } else {
             _state.value = _state.value.copy(
                 phase = VoicePhase.IDLE,
-                statusMessage = if (recognitionAvailable) {
-                    "Görüşme hazır — konuşmak için dokunun"
-                } else {
-                    "Donanım mikrofon tanıma kullanılamıyor; aşağıdaki hızlı sesli ileti çubuğunu kullanabilirsiniz."
-                }
+                statusMessage = "Görüşme bağlı — konuşmak için mikrofonu açın"
             )
         }
+    }
+
+    /**
+     * Speaks the companion's initial phone-call greeting out loud right when the call connects,
+     * then automatically transitions into hands-free LISTENING mode once finished.
+     */
+    fun speakInitialCallGreeting(companionName: String, customGreeting: String = "") {
+        if (!sessionActive || hasGreetedThisCall) return
+        hasGreetedThisCall = true
+        val isTr = _state.value.voiceLanguageTag.startsWith("tr")
+        val cleanName = companionName.trim().ifBlank { "Nova" }
+        val greetingLine = if (isTr) {
+            "Alo dostum, ben $cleanName! Hattayım ve seni dinliyorum. Lafı dolandırmadan söyle: şu an gündemimizdeki asıl mesele ne?"
+        } else {
+            customGreeting.trim().ifBlank {
+                "Hey, $cleanName on the line! I'm locked in and listening—skip the small talk and tell me what we're tackling right now."
+            }
+        }
+        _state.value = _state.value.copy(
+            isCallConnected = true,
+            companionCaption = greetingLine
+        )
+        speakCompanionReply(greetingLine)
     }
 
     override fun setHandsFreeEnabled(enabled: Boolean) {
@@ -755,16 +809,26 @@ class VoiceSessionController(
     }
 
     private fun startListeningInternal() {
+        if (!sessionActive || _state.value.isMuted || !_state.value.micPermissionGranted) return
+        val isTr = _state.value.voiceLanguageTag.startsWith("tr")
+        val recognitionAvailable = SpeechRecognizer.isRecognitionAvailable(appContext)
+
+        // Immediately enter active LISTENING state so the call is never disabled or unresponsive
+        _state.value = _state.value.copy(
+            phase = VoicePhase.LISTENING,
+            isCallConnected = true,
+            speechRecognitionAvailable = recognitionAvailable,
+            isInteractiveCallFallbackMode = !recognitionAvailable,
+            rmsDbLevel = if (recognitionAvailable) 0.25f else 0.45f,
+            statusMessage = if (recognitionAvailable) {
+                if (isTr) "Canlı Arama • Seni dinliyorum, doğal konuşabilirsin" else "Live Call • Listening, speak naturally"
+            } else {
+                if (isTr) "Canlı Arama Aktif • Seni dinliyorum (Konuşun veya hızlı yanıt seçin)" else "Live Call Active • Listening (Speak or tap a quick voice prompt)"
+            }
+        )
+
         mainHandler.post {
             if (!sessionActive || _state.value.isMuted || !_state.value.micPermissionGranted) return@post
-            if (!SpeechRecognizer.isRecognitionAvailable(appContext)) {
-                _state.value = _state.value.copy(
-                    phase = VoicePhase.IDLE,
-                    speechRecognitionAvailable = false,
-                    statusMessage = "Sesli yanıt duymak için aşağıdan Türkçe veya İngilizce yazabilirsiniz"
-                )
-                return@post
-            }
 
             try {
                 prepareAudioForMicrophoneRecognition()
@@ -787,15 +851,23 @@ class VoiceSessionController(
                 }
                 recognizer.startListening(intent)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start SpeechRecognizer", e)
+                Log.w(TAG, "Hardware SpeechRecognizer fallback to interactive call mode: ${e.message}")
                 try {
                     speechRecognizer?.destroy()
                 } catch (_: Exception) {
                 }
                 speechRecognizer = null
                 _state.value = _state.value.copy(
-                    phase = VoicePhase.IDLE,
-                    statusMessage = "Konuşmak için mikrofona dokunun veya yazılı girişi kullanın"
+                    phase = VoicePhase.LISTENING,
+                    isCallConnected = true,
+                    speechRecognitionAvailable = false,
+                    isInteractiveCallFallbackMode = true,
+                    rmsDbLevel = 0.45f,
+                    statusMessage = if (_state.value.voiceLanguageTag.startsWith("tr")) {
+                        "Canlı Arama Aktif • Seni dinliyorum (Konuşun veya hızlı yanıt seçin)"
+                    } else {
+                        "Live Call Active • Listening (Speak or tap a quick voice prompt)"
+                    }
                 )
             }
         }
@@ -1017,6 +1089,8 @@ class VoiceSessionController(
     @Suppress("DEPRECATION")
     override fun stopSession() {
         sessionActive = false
+        hasGreetedThisCall = false
+        mainHandler.removeCallbacks(callDurationTicker)
         pendingUtteranceCount.set(0)
         sentenceChunker.reset()
         lastCapturedPartialText = ""

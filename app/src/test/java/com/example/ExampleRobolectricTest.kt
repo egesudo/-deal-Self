@@ -385,6 +385,14 @@ class ExampleRobolectricTest {
         controller.onMicrophonePermissionResult(true)
         controller.startSession(VoicePreferences())
         assertEquals("tr-TR", controller.state.value.voiceLanguageTag)
+        assertTrue(controller.state.value.isCallConnected)
+        assertEquals(VoicePhase.LISTENING, controller.state.value.phase)
+        assertEquals("00:00", controller.state.value.formattedCallDuration())
+
+        // Verify companion phone-call greeting speaks out loud on connect
+        controller.speakInitialCallGreeting("Nova")
+        assertEquals(VoicePhase.SPEAKING, controller.state.value.phase)
+        assertTrue(controller.state.value.companionCaption.contains("Nova"))
 
         // 0. Verify partial speech capture is preserved on timeout/noise and immediately sent on tap (startListeningManual / commitPendingTranscript)
         controller.onPartialTranscriptCaptured("Bugün odaklanmakta zorlanıyorum")
